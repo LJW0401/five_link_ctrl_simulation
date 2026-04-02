@@ -35,9 +35,7 @@ def main():
             joint_torque, wheel_torque = ctrl.compute(
                 joint_pos=GBC486.joint_pos,
                 pitch=GBC486.euler[1],
-                gyro_y=GBC486.gyro[1],
                 body_x=GBC486.body_x,
-                body_vx=GBC486.body_vx,
             )
 
             # 更新状态估计（用于监控）

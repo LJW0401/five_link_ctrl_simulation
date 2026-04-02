@@ -4,27 +4,27 @@ from VMC import leg_VMC
 
 
 class JOINT_PID:
-    KP = 30.0
-    KI = 0.20
-    KD = 90.0
+    KP = 80.0
+    KI = 1.0
+    KD = 240.0
     INTEGRAL_LIMIT = 5.0
     OUTPUT_LIMIT = 20.0
 
 class PITCH_PID:
     """内环：pitch → 轮子力矩"""
-    KP = 20.0
-    KI = 0.1
-    KD = 70.0
+    KP = 25.0
+    KI = 0.2
+    KD = 100.0
     INTEGRAL_LIMIT = 1.0
     OUTPUT_LIMIT = 4.0
 
 class POS_PID:
     """外环：位移/速度 → pitch 目标"""
-    KP_X = 0.5      # 位移 → pitch 偏移
-    KI_X = 0.00
-    KP_V = 0.0      # 速度 → pitch 偏移
+    KP_X = 1.0      # 位移 → pitch 偏移
+    KI_X = 0.0
+    KP_V = 6.0      # 速度 → pitch 偏移
     INTEGRAL_LIMIT = 0.1  # pitch 偏移限幅 (rad)
-    OUTPUT_LIMIT = 0.3   # 最大 pitch 目标 (rad)
+    OUTPUT_LIMIT = 0.4   # 最大 pitch 目标 (rad)
 
 
 class BalanceController:
@@ -32,7 +32,7 @@ class BalanceController:
 
     def __init__(self):
         # 目标值
-        self.L0_target = 0.2   # 目标腿长 (m)
+        self.L0_target = 0.25   # 目标腿长 (m)
         self.theta_target = 0.0 # 目标摆杆夹角 (rad)
 
         # theta 正弦波参数（设 amplitude=0 关闭）
@@ -67,7 +67,7 @@ class BalanceController:
         self.joint_targets = [0.0, 0.0, 0.0, 0.0]
         self.pitch_ref = 0.0  # 供外部监控
 
-    def compute(self, joint_pos, pitch, gyro_y, body_x, body_vx):
+    def compute(self, joint_pos, pitch, body_x):
         """
         返回:
             joint_torque: [右前, 右后, 左前, 左后]
@@ -104,8 +104,7 @@ class BalanceController:
         # --- 倒立摆轮子控制 ---
         # 外环：位移/速度 → pitch 目标（取反：x>0 → pitch_ref>0 → 向后倾减速）
         t_x = self.pid_x.calc(body_x, 0.0)
-        t_v = -POS_PID.KP_V * (0.0 - body_vx)
-        self.pitch_ref = max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x + t_v))
+        self.pitch_ref = max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x))
 
         # 内环：pitch → 轮子力矩 + 陀螺仪阻尼
         t_pitch = -self.pid_pitch.calc(pitch, self.pitch_ref)
