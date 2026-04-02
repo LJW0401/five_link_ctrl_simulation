@@ -2,6 +2,19 @@ import math
 from Controller import PID
 from VMC import leg_VMC
 
+class JOINT_PID:
+    KP = 30.0
+    KI = 0.20
+    KD = 90.0
+    INTEGRAL_LIMIT = 5.0
+    OUTPUT_LIMIT = 20.0
+
+class WHEEL_PID:
+    KP = 5.0
+    KI = 0.0
+    KD = 0.0
+    INTEGRAL_LIMIT = 1.0
+    OUTPUT_LIMIT = 5.0
 
 class BalanceController:
     """基于动态 IK + 关节位置 PID 的控制器"""
@@ -11,8 +24,8 @@ class BalanceController:
         self.L0_target = 0.15   # 目标腿长 (m)
         self.theta_target = 0.0 # 目标摆杆夹角 (rad)，实时更新
 
-        # theta 正弦波参数
-        self.theta_amplitude = 0.3  # 幅值 (rad)
+        # theta 正弦波参数（设 amplitude=0 关闭）
+        self.theta_amplitude = 0.0  # 幅值 (rad)
         self.theta_frequency = 1.0  # 频率 (Hz)
         self.tick = 0
 
@@ -21,11 +34,15 @@ class BalanceController:
 
         # 关节位置 PID（4个关节：右前, 右后, 左前, 左后）
         self.pid_joint = [
-            PID(p=20.0, i=0.3, d=30.0, integral_limit=20.0, output_limit=20.0),
-            PID(p=20.0, i=0.3, d=30.0, integral_limit=20.0, output_limit=20.0),
-            PID(p=20.0, i=0.3, d=30.0, integral_limit=20.0, output_limit=20.0),
-            PID(p=20.0, i=0.3, d=30.0, integral_limit=20.0, output_limit=20.0),
+            PID(p=JOINT_PID.KP, i=JOINT_PID.KI, d=JOINT_PID.KD, integral_limit=JOINT_PID.INTEGRAL_LIMIT, output_limit=JOINT_PID.OUTPUT_LIMIT),
+            PID(p=JOINT_PID.KP, i=JOINT_PID.KI, d=JOINT_PID.KD, integral_limit=JOINT_PID.INTEGRAL_LIMIT, output_limit=JOINT_PID.OUTPUT_LIMIT),
+            PID(p=JOINT_PID.KP, i=JOINT_PID.KI, d=JOINT_PID.KD, integral_limit=JOINT_PID.INTEGRAL_LIMIT, output_limit=JOINT_PID.OUTPUT_LIMIT),
+            PID(p=JOINT_PID.KP, i=JOINT_PID.KI, d=JOINT_PID.KD, integral_limit=JOINT_PID.INTEGRAL_LIMIT, output_limit=JOINT_PID.OUTPUT_LIMIT),
         ]
+
+        # 轮子控制 PID（位移+速度）
+        self.pid_x = PID(p=WHEEL_PID.KP, i=WHEEL_PID.KI, d=WHEEL_PID.KD, integral_limit=WHEEL_PID.INTEGRAL_LIMIT, output_limit=WHEEL_PID.OUTPUT_LIMIT)
+        self.pid_v = PID(p=WHEEL_PID.KP, i=WHEEL_PID.KI, d=WHEEL_PID.KD, integral_limit=WHEEL_PID.INTEGRAL_LIMIT, output_limit=WHEEL_PID.OUTPUT_LIMIT)
 
         # 当前关节目标（供外部监控）
         self.joint_targets = [0.0, 0.0, 0.0, 0.0]
@@ -46,11 +63,11 @@ class BalanceController:
         t = self.tick * 0.004  # 控制周期 4ms
         self.theta_target = self.theta_amplitude * math.sin(2 * math.pi * self.theta_frequency * t)
 
-        # --- 由 theta 和 pitch 计算目标 phi0 ---
-        # 右腿: theta = pi/2 + pitch - phi0  → phi0 = pi/2 + pitch - theta
-        phi0_r = math.pi / 2.0 + pitch - self.theta_target
-        # 左腿(镜像): theta = pi/2 - pitch - phi0  → phi0 = pi/2 - pitch - theta
-        phi0_l = math.pi / 2.0 - pitch - self.theta_target
+        # --- 由 phi0 和 pitch 计算目标 phi0 ---
+        # 右腿: phi0 = pi/2
+        phi0_r = math.pi / 2.0 
+        # 左腿(镜像): phi0 = pi/2
+        phi0_l = math.pi / 2.0
 
         # --- IK 解算 ---
         ik_r = self.vmc.vmc_inverse_kinematics(self.L0_target, phi0_r)
@@ -71,4 +88,9 @@ class BalanceController:
         for i in range(4):
             joint_torque[i] = self.pid_joint[i].calc(joint_pos[i], self.joint_targets[i])
 
-        return joint_torque, 0.0
+        # --- 轮子力矩（位移+速度归零） ---
+        w_x = self.pid_x.calc(body_x, 0.0)
+        w_v = self.pid_v.calc(body_vx, 0.0)
+        wheel_torque = max(-4.0, min(4.0, w_x + w_v))
+
+        return joint_torque, wheel_torque

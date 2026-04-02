@@ -45,16 +45,20 @@ def main():
                          GBC486.body_x, GBC486.body_vx)
 
             GBC486.joint_torque = joint_torque
-            GBC486.wheel_torque = [0.0, 0.0]  # 屏蔽轮子
+            GBC486.wheel_torque = [wheel_torque, wheel_torque]
             GBC486.actuator_set_torque()
 
         if i % t3 == 0:
             cmd = keyboard.get_command()
+            jp = GBC486.joint_pos
+            jv = GBC486.joint_vel
             print(
-                f"R: L0={state.leg[0].L0:.4f} θ={state.leg[0].theta:.3f} | "
-                f"L: L0={state.leg[1].L0:.4f} θ={state.leg[1].theta:.3f} | "
-                f"pitch={GBC486.euler[1]:.3f} | "
-                f"θ_ref={ctrl.theta_target:.3f}"
+                f"pos: [{jp[0]:+.3f} {jp[1]:+.3f} {jp[2]:+.3f} {jp[3]:+.3f}] | "
+                f"vel: [{jv[0]:+.2f} {jv[1]:+.2f} {jv[2]:+.2f} {jv[3]:+.2f}] | "
+                f"tgt: [{ctrl.joint_targets[0]:+.3f} {ctrl.joint_targets[1]:+.3f} "
+                f"{ctrl.joint_targets[2]:+.3f} {ctrl.joint_targets[3]:+.3f}] | "
+                f"L0: R={state.leg[0].L0:.3f} L={state.leg[1].L0:.3f} | "
+                f"θ: R={state.leg[0].theta:+.3f} L={state.leg[1].theta:+.3f}"
             )
 
 

@@ -84,8 +84,9 @@ class LegWheelRobot:
         left_front_pos = self.data.sensor('Left_front_joint_pos').data.copy()[0]+0.003   #IJ
         # 左后关节位置
         left_rear_pos = self.data.sensor('Left_rear_joint_pos').data.copy()[0]-1.3       #IO
-        self.joint_pos = np.array([right_front_pos, right_rear_pos, left_front_pos, left_rear_pos])
-        
+        new_joint_pos = np.array([right_front_pos, right_rear_pos, left_front_pos, left_rear_pos])
+        self.joint_vel = (new_joint_pos - self.joint_pos) * self.sensor_f if hasattr(self, 'joint_pos') and len(self.joint_pos) == 4 else np.zeros(4)
+        self.joint_pos = new_joint_pos
 
     def actuator_set_torque(self):
         """设置执行器力矩"""
