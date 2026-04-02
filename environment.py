@@ -15,7 +15,7 @@ class LegWheelRobot:
 
         self.sensor_T = 0.001
         self.sensor_f = 1/self.sensor_T 
-        self.wheel_r = 0.77
+        self.wheel_r = 0.088  # 轮子半径 (m)，从仿真模型测量
 
         self.gyro = []
         self.accel = []
@@ -25,8 +25,12 @@ class LegWheelRobot:
         self.joint_pos = []
         self.wheel_vel = [0,0]
 
-        self.x = 0 #整车位移
-        self.d_x = 0 #整车速度
+        self.x = 0 #整车位移（里程计）
+        self.d_x = 0 #整车速度（里程计）
+
+        self.body_x = 0.0    # 机体真实位置 (仿真)
+        self.body_vx = 0.0   # 机体真实速度 (仿真)
+        self.last_body_x = 0.0
 
         self.sensor_data = []
 
@@ -64,8 +68,13 @@ class LegWheelRobot:
         self.last_right_wheel_pos = self.right_wheel_pos
         self.last_left_wheel_pos = self.left_wheel_pos
         
-        self.d_x = (self.wheel_vel[0] + self.wheel_vel[1]) * 0.5 * 2*math.pi*self.wheel_r / 60
+        self.d_x = (self.wheel_vel[0] + self.wheel_vel[1]) * 0.5 * self.wheel_r  # v = ω * r
         self.x = self.x + self.d_x*self.sensor_T
+
+        # 机体真实位置/速度（从仿真读取，base body id = 1）
+        self.body_x = self.data.xpos[1][0]
+        self.body_vx = (self.body_x - self.last_body_x) * self.sensor_f
+        self.last_body_x = self.body_x
 
         # 右前关节位置
         right_front_pos = self.data.sensor('Right_front_joint_pos').data.copy()[0]+0.027  #AB
