@@ -111,7 +111,7 @@ class BalanceController:
         t_v = POS_PID.KP_V * (0.0 - body_vx)
         self.pitch_ref = max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x + t_v))
 
-        # 内环：pitch → 轮子力矩 + 陀螺仪阻尼
+        # 内环：pitch → 轮子力矩
         t_pitch = -self.pid_pitch.calc(pitch, self.pitch_ref)
         wheel_torque = max(-4.0, min(4.0, t_pitch))
 
