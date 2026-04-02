@@ -196,4 +196,42 @@ class leg_VMC:
 
     #Tp：扭转力；F0：支持力
 
+    def vmc_inverse_kinematics(self, L0, phi0):
+        """
+        逆运动学：给定虚拟腿参数 (L0, phi0)，求解关节角度 (phi1, phi4)
+
+        参数:
+            L0:   虚拟腿长度 (m)
+            phi0: 虚拟腿极角 (rad)，以 (l5/2, 0) 为极点
+
+        返回:
+            (phi1, phi4): 两个驱动关节角度 (rad)
+            如果无解返回 None
+        """
+        # 由极坐标还原 C 点直角坐标
+        XC = self.l5 / 2.0 + L0 * math.cos(phi0)
+        YC = L0 * math.sin(phi0)
+
+        # --- 左链 A(0,0) → B → C，链长 l1, l2 ---
+        AC = math.sqrt(XC**2 + YC**2)
+        cos_alpha = (self.l1**2 + AC**2 - self.l2**2) / (2 * self.l1 * AC)
+        if abs(cos_alpha) > 1.0:
+            return None  # 超出工作空间
+        alpha = math.acos(cos_alpha)
+        angle_AC = math.atan2(YC, XC)
+        # 选择与正运动学一致的肘部构型（膝盖朝外）
+        phi1 = angle_AC + alpha
+
+        # --- 右链 E(l5,0) → D → C，链长 l4, l3 ---
+        XC_rel = XC - self.l5
+        EC = math.sqrt(XC_rel**2 + YC**2)
+        cos_beta = (self.l4**2 + EC**2 - self.l3**2) / (2 * self.l4 * EC)
+        if abs(cos_beta) > 1.0:
+            return None  # 超出工作空间
+        beta = math.acos(cos_beta)
+        angle_EC = math.atan2(YC, XC_rel)
+        # 右链肘部构型（膝盖朝外）
+        phi4 = angle_EC - beta
+
+        return (phi1, phi4)
 

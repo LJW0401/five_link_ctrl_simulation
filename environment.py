@@ -119,6 +119,19 @@ class LegWheelRobot:
         # 更新模型状态
         mujoco.mj_forward(self.model, self.data)
 
+    def set_actuated_joint_pos(self, jAB_val, jAG_val, jIJ_val, jIO_val):
+        """设置四个驱动关节的初始位置（raw qpos值，不含传感器偏移）"""
+        joint_names = ['jAB', 'jAG', 'jIJ', 'jIO']
+        values = [jAB_val, jAG_val, jIJ_val, jIO_val]
+        for name, val in zip(joint_names, values):
+            jid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name)
+            adr = self.model.jnt_qposadr[jid]
+            self.data.qpos[adr] = val
+            # 对应的 qvel 清零
+            vid = self.model.jnt_dofadr[jid]
+            self.data.qvel[vid] = 0.0
+        mujoco.mj_forward(self.model, self.data)
+
     def step(self):
         """执行一步仿真"""
         mujoco.mj_step(self.model, self.data)
