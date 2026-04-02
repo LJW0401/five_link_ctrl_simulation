@@ -22,7 +22,8 @@ class LegWheelRobot:
         self.orien = []
         self.euler = []
 
-        self.joint_pos = []
+        self.joint_pos = np.zeros(4)
+        self.joint_vel = np.zeros(4)
         self.wheel_vel = [0,0]
 
         self.x = 0 #整车位移（里程计）
@@ -85,7 +86,7 @@ class LegWheelRobot:
         # 左后关节位置
         left_rear_pos = self.data.sensor('Left_rear_joint_pos').data.copy()[0]-1.3       #IO
         new_joint_pos = np.array([right_front_pos, right_rear_pos, left_front_pos, left_rear_pos])
-        self.joint_vel = (new_joint_pos - self.joint_pos) * self.sensor_f if hasattr(self, 'joint_pos') and len(self.joint_pos) == 4 else np.zeros(4)
+        self.joint_vel = (new_joint_pos - self.joint_pos) * self.sensor_f
         self.joint_pos = new_joint_pos
 
     def actuator_set_torque(self):
@@ -118,19 +119,6 @@ class LegWheelRobot:
                 # print(idx)
         
         # 更新模型状态
-        mujoco.mj_forward(self.model, self.data)
-
-    def set_actuated_joint_pos(self, jAB_val, jAG_val, jIJ_val, jIO_val):
-        """设置四个驱动关节的初始位置（raw qpos值，不含传感器偏移）"""
-        joint_names = ['jAB', 'jAG', 'jIJ', 'jIO']
-        values = [jAB_val, jAG_val, jIJ_val, jIO_val]
-        for name, val in zip(joint_names, values):
-            jid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name)
-            adr = self.model.jnt_qposadr[jid]
-            self.data.qpos[adr] = val
-            # 对应的 qvel 清零
-            vid = self.model.jnt_dofadr[jid]
-            self.data.qvel[vid] = 0.0
         mujoco.mj_forward(self.model, self.data)
 
     def step(self):

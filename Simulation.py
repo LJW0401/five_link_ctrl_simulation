@@ -36,6 +36,7 @@ def main():
                 joint_pos=GBC486.joint_pos,
                 pitch=GBC486.euler[1],
                 body_x=GBC486.body_x,
+                body_vx=GBC486.body_vx,
             )
 
             # 更新状态估计（用于监控）

@@ -31,9 +31,6 @@ class LegState:
         self.dTheta = 0.0
         self.ddTheta = 0.0
 
-        # 支撑力
-        self.Fn = 0.0
-
         # 上一时刻值（用于数值微分）
         self._last_L0 = 0.0
         self._last_dL0 = 0.0
@@ -131,28 +128,6 @@ class StateEstimator:
         leg.ddL0 = (leg.dL0 - leg._last_dL0) / dt
         leg.ddPhi0 = (leg.dPhi0 - leg._last_dPhi0) / dt
         leg.ddTheta = (leg.dTheta - leg._last_dTheta) / dt
-
-        # ===== 支撑力估计 =====
-        # ddot_z_w = ddot_z_M - ddL0*cos(theta) + 2*dL0*dTheta*sin(theta)
-        #          + L0*ddTheta*sin(theta) + L0*dTheta²*cos(theta)
-        cos_t = math.cos(leg.theta)
-        sin_t = math.sin(leg.theta)
-        ddot_z_w = (
-            - leg.ddL0 * cos_t
-            + 2.0 * leg.dL0 * leg.dTheta * sin_t
-            + leg.L0 * leg.ddTheta * sin_t
-            + leg.L0 * leg.dTheta ** 2 * cos_t
-        )
-
-        # 从 VMC 雅可比获取虚拟力（如果已计算）
-        vmc.vmc_calc_torque()
-        F0 = vmc.F0
-        Tp = vmc.Tp
-        if leg.L0 > 1e-6:
-            P = F0 * cos_t + Tp * sin_t / leg.L0
-        else:
-            P = 0.0
-        leg.Fn = P + WHEEL_MASS * (GRAVITY + ddot_z_w)
 
         # ===== 保存上一时刻 =====
         leg._last_L0 = leg.L0

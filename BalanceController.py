@@ -67,7 +67,7 @@ class BalanceController:
         self.joint_targets = [0.0, 0.0, 0.0, 0.0]
         self.pitch_ref = 0.0  # 供外部监控
 
-    def compute(self, joint_pos, pitch, body_x):
+    def compute(self, joint_pos, pitch, body_x, body_vx=0.0):
         """
         返回:
             joint_torque: [右前, 右后, 左前, 左后]
@@ -90,11 +90,15 @@ class BalanceController:
             phi1_r, phi4_r = ik_r
             self.joint_targets[0] = phi1_r - math.pi
             self.joint_targets[1] = phi4_r
+        else:
+            print(f"[警告] 右腿 IK 无解: L0={self.L0_target:.3f}, phi0={phi0_r:.3f}")
 
         if ik_l is not None:
             phi1_l, phi4_l = ik_l
             self.joint_targets[2] = phi4_l
             self.joint_targets[3] = phi1_l - math.pi
+        else:
+            print(f"[警告] 左腿 IK 无解: L0={self.L0_target:.3f}, phi0={phi0_l:.3f}")
 
         # --- 关节 PID ---
         joint_torque = [0.0] * 4
@@ -102,9 +106,10 @@ class BalanceController:
             joint_torque[i] = self.pid_joint[i].calc(joint_pos[i], self.joint_targets[i])
 
         # --- 倒立摆轮子控制 ---
-        # 外环：位移/速度 → pitch 目标（取反：x>0 → pitch_ref>0 → 向后倾减速）
+        # 外环：位移/速度 → pitch 目标
         t_x = self.pid_x.calc(body_x, 0.0)
-        self.pitch_ref = max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x))
+        t_v = POS_PID.KP_V * (0.0 - body_vx)
+        self.pitch_ref = max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x + t_v))
 
         # 内环：pitch → 轮子力矩 + 陀螺仪阻尼
         t_pitch = -self.pid_pitch.calc(pitch, self.pitch_ref)
