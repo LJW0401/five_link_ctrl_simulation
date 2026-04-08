@@ -51,12 +51,13 @@ def main():
 
         if i % t3 == 0:
             cmd = keyboard.get_command()
+            phi = -GBC486.euler[1]
+            phi_dot = -GBC486.gyro[1]
             print(
-                f"L0: R={state.leg[0].L0:.3f} L={state.leg[1].L0:.3f} | "
-                f"θ: R={state.leg[0].theta:+.3f} L={state.leg[1].theta:+.3f} | "
-                f"pitch={GBC486.euler[1]:+.4f} | "
-                f"x={GBC486.body_x:+.4f} v={GBC486.body_vx:+.3f} | "
-                f"whl={GBC486.wheel_torque[0]:+.2f}"
+                f"θ={state.leg[0].theta:+.4f} dθ={state.leg[0].dTheta:+.3f} | "
+                f"x={GBC486.body_x:+.4f} dx={GBC486.body_vx:+.3f} | "
+                f"φ={phi:+.4f} dφ={phi_dot:+.3f} | "
+                f"L0={state.leg[0].L0:.3f} whl={GBC486.wheel_torque[0]:+.2f}"
             )
 
 
