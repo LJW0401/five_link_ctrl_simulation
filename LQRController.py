@@ -15,26 +15,36 @@ from StateEstimator import StateEstimator
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "lqr_config.json")
 
 
-def load_poly_coeffs(config_path=CONFIG_FILE):
-    """从 JSON 加载多项式系数"""
-    with open(config_path, "r") as f:
-        config = json.load(f)
-    return config["poly_coeffs"]
+class KTable:
+    """K 矩阵查找表，线性插值"""
 
+    def __init__(self, L0_values, K_table):
+        self.L0_values = L0_values
+        self.K_table = K_table  # list of list: [n][2][6]
+        self.n = len(L0_values)
+        self.L0_min = L0_values[0]
+        self.L0_max = L0_values[-1]
 
-def get_k(L0, poly_coeffs):
-    """
-    用多项式计算 K[2][6]（Horner 法，支持任意阶数）
-    """
-    k = [[0.0] * 6 for _ in range(2)]
-    for i in range(2):
-        for j in range(6):
-            c = poly_coeffs[i][j]
-            val = 0.0
-            for coeff in c:
-                val = val * L0 + coeff
-            k[i][j] = val
-    return k
+    def get_k(self, L0):
+        """根据 L0 线性插值获取 K[2][6]"""
+        # 钳位
+        if L0 <= self.L0_min:
+            return [row[:] for row in self.K_table[0]]
+        if L0 >= self.L0_max:
+            return [row[:] for row in self.K_table[-1]]
+
+        # 找区间
+        step = (self.L0_max - self.L0_min) / (self.n - 1)
+        idx = int((L0 - self.L0_min) / step)
+        idx = min(idx, self.n - 2)
+
+        # 插值
+        t = (L0 - self.L0_values[idx]) / (self.L0_values[idx + 1] - self.L0_values[idx])
+        k = [[0.0] * 6 for _ in range(2)]
+        for i in range(2):
+            for j in range(6):
+                k[i][j] = (1 - t) * self.K_table[idx][i][j] + t * self.K_table[idx + 1][i][j]
+        return k
 
 
 def calc_lqr(k, x):
@@ -50,7 +60,7 @@ class LQRBalanceController:
 
     控制流程:
       1. StateEstimator 获取状态
-      2. 二次多项式计算 K(L0)
+      2. 查找表线性插值获取 K(L0)
       3. LQR 状态反馈 → T, Tp
       4. PID 控制腿长 → F0
       5. VMC 雅可比 (F0, Tp) → 关节力矩
@@ -66,9 +76,10 @@ class LQRBalanceController:
         with open(config_path, "r") as f:
             config = json.load(f)
 
-        self.poly_coeffs = config["poly_coeffs"]
+        self.k_table = KTable(config["L0_values"], config["K_table"])
         L0_range = config["L0_range"]
-        print(f"[LQR] 加载二次多项式系数, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
+        n = len(config["L0_values"])
+        print(f"[LQR] 加载K矩阵查找表: {n}点, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
 
         # 目标值
         self.L0_target = 0.15
@@ -102,7 +113,7 @@ class LQRBalanceController:
         wheel_torque_sum = 0.0
         for i in range(2):
             leg = self.state.leg[i]
-            k = get_k(leg.L0, self.poly_coeffs)
+            k = self.k_table.get_k(leg.L0)
 
             x = [
                 leg.theta,
