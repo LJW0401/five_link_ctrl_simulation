@@ -77,6 +77,7 @@ class LQRBalanceController:
             config = json.load(f)
 
         self.k_table = KTable(config["L0_values"], config["K_table"])
+        self.leg_params = config.get("leg_params", None)
         L0_range = config["L0_range"]
         n = len(config["L0_values"])
         print(f"[LQR] 加载K矩阵查找表: {n}点, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
@@ -86,8 +87,8 @@ class LQRBalanceController:
         self.x_target = 0.0
         self.v_target = 0.0
 
-        # 状态估计器
-        self.state = StateEstimator()
+        # 状态估计器（传入五连杆参数）
+        self.state = StateEstimator(self.leg_params)
 
         # 腿长 PID
         self.pid_L0_r = PID(p=3000.0, i=10.0, d=2000.0, integral_limit=50.0, output_limit=300.0)

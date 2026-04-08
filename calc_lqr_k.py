@@ -27,6 +27,14 @@ DEFAULT_ROBOT_PARAMS = {
     "g":  9.81,
 }
 
+DEFAULT_LEG_PARAMS = {
+    "l1": 0.215,             # 连杆1长度 (m)
+    "l2": 0.258,             # 连杆2长度 (m)
+    "l3": 0.258,             # 连杆3长度 (m)
+    "l4": 0.215,             # 连杆4长度 (m)
+    "l5": 0.0,               # A-E距离 (m)
+}
+
 DEFAULT_Q = [100.0, 1.0, 500.0, 100.0, 5000.0, 1.0]
 DEFAULT_R = [250.0, 100.0]
 
@@ -121,7 +129,7 @@ def compute_k(leg_length, params=None, Q=None, R=None):
     return K
 
 
-def generate_config(params=None, Q=None, R=None, L0_range=None):
+def generate_config(params=None, leg_params=None, Q=None, R=None, L0_range=None):
     """
     计算 K 矩阵查找表并保存为 JSON
 
@@ -129,6 +137,8 @@ def generate_config(params=None, Q=None, R=None, L0_range=None):
     """
     if params is None:
         params = DEFAULT_ROBOT_PARAMS
+    if leg_params is None:
+        leg_params = DEFAULT_LEG_PARAMS
     if Q is None:
         Q = DEFAULT_Q
     if R is None:
@@ -156,6 +166,7 @@ def generate_config(params=None, Q=None, R=None, L0_range=None):
 
     config = {
         "robot_params": params,
+        "leg_params": leg_params,
         "Q": Q,
         "R": R,
         "L0_range": L0_range,

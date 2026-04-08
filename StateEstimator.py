@@ -57,9 +57,9 @@ WHEEL_MASS = 0.322   # 单轮质量 (kg)
 class StateEstimator:
     """双腿 + 机体状态估计器"""
 
-    def __init__(self):
-        self.vmc_r = leg_VMC()
-        self.vmc_l = leg_VMC()
+    def __init__(self, leg_params=None):
+        self.vmc_r = leg_VMC(leg_params)
+        self.vmc_l = leg_VMC(leg_params)
         self.leg = [LegState(), LegState()]   # [右腿, 左腿]
         self.body = BodyState()
 

@@ -5,13 +5,20 @@ class leg_VMC:
     """
     虚拟机械腿参数类
     """
-    def __init__(self):
+    def __init__(self, leg_params=None):
         # 长度参数，单位为m
-        self.l5 = 0.0  # AE距离
-        self.l1 = 0.215
-        self.l4 = 0.215
-        self.l2 = 0.258
-        self.l3 = 0.258
+        if leg_params is not None:
+            self.l1 = leg_params["l1"]
+            self.l2 = leg_params["l2"]
+            self.l3 = leg_params["l3"]
+            self.l4 = leg_params["l4"]
+            self.l5 = leg_params["l5"]
+        else:
+            self.l5 = 0.0  # AE距离
+            self.l1 = 0.215
+            self.l4 = 0.215
+            self.l2 = 0.258
+            self.l3 = 0.258
         
         # 坐标点
         self.XB = 0.0
