@@ -24,15 +24,16 @@ def load_poly_coeffs(config_path=CONFIG_FILE):
 
 def get_k(L0, poly_coeffs):
     """
-    用二次多项式计算 K[2][6]
-    k[i][j] = a2*L0² + a1*L0 + a0
+    用多项式计算 K[2][6]（Horner 法，支持任意阶数）
     """
-    L0_2 = L0 * L0
     k = [[0.0] * 6 for _ in range(2)]
     for i in range(2):
         for j in range(6):
             c = poly_coeffs[i][j]
-            k[i][j] = c[0] * L0_2 + c[1] * L0 + c[2]
+            val = 0.0
+            for coeff in c:
+                val = val * L0 + coeff
+            k[i][j] = val
     return k
 
 

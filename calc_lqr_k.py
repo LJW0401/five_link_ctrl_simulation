@@ -19,11 +19,11 @@ CONFIG_FILE = "lqr_config.json"
 # ========== 默认参数 ==========
 DEFAULT_ROBOT_PARAMS = {
     "R":  0.088,             # 驱动轮半径 (m)
-    "l":  0.03,              # 机体质心距转轴距离 (m)
-    "mw": 0.322 * 2,         # 驱动轮质量 (kg)
-    "mp": 1.8,               # 摆杆（腿）质量 (kg)
+    "l":  0.0447,            # 机体质心距转轴距离 (m)
+    "mw": 0.322,             # 单个驱动轮质量 (kg)
+    "mp": 2.751,             # 单腿质量 (kg)（不含轮子）
     "M":  8.4,               # 机体质量 (kg)
-    "IM": 249032349.82e-9,   # 机体绕质心转动惯量 (kg·m²)
+    "IM": 0.112177,          # 机体绕pitch轴转动惯量 (kg·m²)
     "g":  9.81,
 }
 
@@ -148,14 +148,14 @@ def generate_config(params=None, Q=None, R=None, L0_range=None):
         K_table.append(K.tolist())
     print("完成！")
 
-    # 二次多项式拟合: k[i][j] = a2*L0^2 + a1*L0 + a0
+    # 三次多项式拟合: k[i][j] = a3*L0^3 + a2*L0^2 + a1*L0 + a0
     K_arr = np.array(K_table)  # (n, 2, 6)
     L0_arr = np.array(L0_values)
     poly_coeffs = [[None] * 6 for _ in range(2)]
     for i in range(2):
         for j in range(6):
-            c = np.polyfit(L0_arr, K_arr[:, i, j], 2)
-            poly_coeffs[i][j] = c.tolist()  # [a2, a1, a0]
+            c = np.polyfit(L0_arr, K_arr[:, i, j], 3)
+            poly_coeffs[i][j] = c.tolist()  # [a3, a2, a1, a0]
 
     # 验证拟合误差
     max_err = 0.0
@@ -163,10 +163,13 @@ def generate_config(params=None, Q=None, R=None, L0_range=None):
         for i in range(2):
             for j in range(6):
                 c = poly_coeffs[i][j]
-                k_fit = c[0] * L0 ** 2 + c[1] * L0 + c[2]
+                k_fit = c[0] * L0 ** 3 + c[1] * L0 ** 2 + c[2] * L0 + c[3]
                 err = abs(k_fit - K_arr[idx, i, j])
                 max_err = max(max_err, err)
-    print(f"二次拟合最大绝对误差: {max_err:.4f}")
+    print(f"三次拟合最大绝对误差: {max_err:.4f}")
+
+    # 绘制拟合曲线
+    plot_k_fitting(L0_arr, K_arr, poly_coeffs)
 
     config = {
         "robot_params": params,
@@ -176,6 +179,41 @@ def generate_config(params=None, Q=None, R=None, L0_range=None):
         "poly_coeffs": poly_coeffs,
     }
     return config
+
+
+def plot_k_fitting(L0_arr, K_arr, poly_coeffs):
+    """绘制 K 矩阵原始值与拟合曲线对比图"""
+    import matplotlib.pyplot as plt
+
+    state_names = ["theta", "d_theta", "x", "dx", "phi", "d_phi"]
+    row_labels = ["T (wheel)", "Tp (hip)"]
+
+    L0_dense = np.linspace(L0_arr[0], L0_arr[-1], 200)
+
+    fig, axes = plt.subplots(2, 6, figsize=(20, 6))
+    fig.suptitle("K matrix fitting: exact vs cubic polynomial", fontsize=14)
+
+    for i in range(2):
+        for j in range(6):
+            ax = axes[i][j]
+            # 原始值
+            ax.plot(L0_arr, K_arr[:, i, j], 'o', markersize=3, label='exact')
+            # 拟合曲线
+            c = poly_coeffs[i][j]
+            K_fit = np.polyval(c, L0_dense)
+            ax.plot(L0_dense, K_fit, '-', linewidth=1.5, label='poly fit')
+
+            ax.set_title(f"k[{i}][{j}] ({state_names[j]})", fontsize=9)
+            if j == 0:
+                ax.set_ylabel(row_labels[i], fontsize=9)
+            if i == 1:
+                ax.set_xlabel("L0 (m)", fontsize=8)
+            ax.legend(fontsize=7)
+            ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig("k_fitting.png", dpi=150)
+    print("拟合曲线已保存到 k_fitting.png")
 
 
 def save_config(config, filepath=CONFIG_FILE):
@@ -203,7 +241,7 @@ if __name__ == "__main__":
     L0_test = 0.25
     K_exact = compute_k(L0_test)
     c = config["poly_coeffs"]
-    K_fit = [[sum(c[i][j][n] * L0_test ** (2 - n) for n in range(3)) for j in range(6)] for i in range(2)]
+    K_fit = [[np.polyval(c[i][j], L0_test) for j in range(6)] for i in range(2)]
     print(f"\nL0={L0_test}m:")
     print(f"  精确 T  = {np.round(K_exact[0], 3)}")
     print(f"  拟合 T  = {[round(v, 3) for v in K_fit[0]]}")
