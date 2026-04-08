@@ -148,13 +148,32 @@ def generate_config(params=None, Q=None, R=None, L0_range=None):
         K_table.append(K.tolist())
     print("完成！")
 
+    # 二次多项式拟合: k[i][j] = a2*L0^2 + a1*L0 + a0
+    K_arr = np.array(K_table)  # (n, 2, 6)
+    L0_arr = np.array(L0_values)
+    poly_coeffs = [[None] * 6 for _ in range(2)]
+    for i in range(2):
+        for j in range(6):
+            c = np.polyfit(L0_arr, K_arr[:, i, j], 2)
+            poly_coeffs[i][j] = c.tolist()  # [a2, a1, a0]
+
+    # 验证拟合误差
+    max_err = 0.0
+    for idx, L0 in enumerate(L0_values):
+        for i in range(2):
+            for j in range(6):
+                c = poly_coeffs[i][j]
+                k_fit = c[0] * L0 ** 2 + c[1] * L0 + c[2]
+                err = abs(k_fit - K_arr[idx, i, j])
+                max_err = max(max_err, err)
+    print(f"二次拟合最大绝对误差: {max_err:.4f}")
+
     config = {
         "robot_params": params,
         "Q": Q,
         "R": R,
         "L0_range": L0_range,
-        "L0_values": L0_values,
-        "K_table": K_table,
+        "poly_coeffs": poly_coeffs,
     }
     return config
 
@@ -183,6 +202,10 @@ if __name__ == "__main__":
     # 验证
     L0_test = 0.25
     K_exact = compute_k(L0_test)
-    print(f"\nL0={L0_test}m 精确 K:")
-    print(f"  T  gains: {np.round(K_exact[0], 3)}")
-    print(f"  Tp gains: {np.round(K_exact[1], 3)}")
+    c = config["poly_coeffs"]
+    K_fit = [[sum(c[i][j][n] * L0_test ** (2 - n) for n in range(3)) for j in range(6)] for i in range(2)]
+    print(f"\nL0={L0_test}m:")
+    print(f"  精确 T  = {np.round(K_exact[0], 3)}")
+    print(f"  拟合 T  = {[round(v, 3) for v in K_fit[0]]}")
+    print(f"  精确 Tp = {np.round(K_exact[1], 3)}")
+    print(f"  拟合 Tp = {[round(v, 3) for v in K_fit[1]]}")

@@ -1,8 +1,8 @@
 """
 LQR 状态反馈控制器
 
-启动时从 lqr_config.json 加载 K 矩阵查找表，
-运行时根据当前腿长 L0 线性插值获取 K。
+启动时从 lqr_config.json 加载二次多项式系数，
+运行时根据当前腿长 L0 计算 K = a2*L0² + a1*L0 + a0。
 
 状态向量 x[6]: [theta, d_theta, x, d_x, phi, d_phi]
 控制输出: T (轮子力矩), Tp (髋关节力矩)
@@ -10,35 +10,30 @@ LQR 状态反馈控制器
 
 import json
 import os
-import numpy as np
 from StateEstimator import StateEstimator
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "lqr_config.json")
 
 
-class KTable:
-    """K 矩阵查找表，支持线性插值"""
+def load_poly_coeffs(config_path=CONFIG_FILE):
+    """从 JSON 加载多项式系数"""
+    with open(config_path, "r") as f:
+        config = json.load(f)
+    return config["poly_coeffs"]
 
-    def __init__(self, config):
-        self.L0_values = np.array(config["L0_values"])
-        self.K_table = np.array(config["K_table"])  # shape: (n, 2, 6)
-        self.L0_min = self.L0_values[0]
-        self.L0_max = self.L0_values[-1]
 
-    def get_k(self, L0):
-        """根据 L0 插值获取 K[2][6]"""
-        L0_clamped = np.clip(L0, self.L0_min, self.L0_max)
-        # 找插值位置
-        idx = np.searchsorted(self.L0_values, L0_clamped, side='right') - 1
-        idx = np.clip(idx, 0, len(self.L0_values) - 2)
-
-        # 线性插值
-        L0_lo = self.L0_values[idx]
-        L0_hi = self.L0_values[idx + 1]
-        t = (L0_clamped - L0_lo) / (L0_hi - L0_lo)
-
-        K = (1 - t) * self.K_table[idx] + t * self.K_table[idx + 1]
-        return K.tolist()
+def get_k(L0, poly_coeffs):
+    """
+    用二次多项式计算 K[2][6]
+    k[i][j] = a2*L0² + a1*L0 + a0
+    """
+    L0_2 = L0 * L0
+    k = [[0.0] * 6 for _ in range(2)]
+    for i in range(2):
+        for j in range(6):
+            c = poly_coeffs[i][j]
+            k[i][j] = c[0] * L0_2 + c[1] * L0 + c[2]
+    return k
 
 
 def calc_lqr(k, x):
@@ -54,7 +49,7 @@ class LQRBalanceController:
 
     控制流程:
       1. StateEstimator 获取状态
-      2. K 矩阵查找表插值
+      2. 二次多项式计算 K(L0)
       3. LQR 状态反馈 → T, Tp
       4. PID 控制腿长 → F0
       5. VMC 雅可比 (F0, Tp) → 关节力矩
@@ -63,7 +58,6 @@ class LQRBalanceController:
     def __init__(self, config_path=CONFIG_FILE):
         from Controller import PID
 
-        # 加载 K 矩阵配置
         if not os.path.exists(config_path):
             raise FileNotFoundError(
                 f"未找到 {config_path}，请先运行 python calc_lqr_k.py 生成")
@@ -71,11 +65,9 @@ class LQRBalanceController:
         with open(config_path, "r") as f:
             config = json.load(f)
 
-        self.k_table = KTable(config)
-        self.robot_params = config["robot_params"]
-
-        print(f"[LQR] 加载 K 矩阵: {len(config['L0_values'])} 个采样点, "
-              f"L0 ∈ [{config['L0_range']['min']:.2f}, {config['L0_range']['max']:.2f}]m")
+        self.poly_coeffs = config["poly_coeffs"]
+        L0_range = config["L0_range"]
+        print(f"[LQR] 加载二次多项式系数, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
 
         # 目标值
         self.L0_target = 0.25
@@ -109,16 +101,15 @@ class LQRBalanceController:
         wheel_torque_sum = 0.0
         for i in range(2):
             leg = self.state.leg[i]
-
-            k = self.k_table.get_k(leg.L0)
+            k = get_k(leg.L0, self.poly_coeffs)
 
             x = [
-                leg.theta - 0.0,
-                leg.dTheta - 0.0,
+                leg.theta,
+                leg.dTheta,
                 body_x - self.x_target,
                 body_vx - self.v_target,
-                phi - 0.0,
-                phi_dot - 0.0,
+                phi,
+                phi_dot,
             ]
 
             T, Tp = calc_lqr(k, x)
