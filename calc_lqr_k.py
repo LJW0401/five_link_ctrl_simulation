@@ -28,7 +28,7 @@ DEFAULT_ROBOT_PARAMS = {
 }
 
 DEFAULT_Q = [100.0, 1.0, 500.0, 100.0, 5000.0, 1.0]
-DEFAULT_R = [220.0, 70.0]
+DEFAULT_R = [250.0, 100.0]
 
 DEFAULT_L0_RANGE = {"min": 0.10, "max": 0.40, "n_points": 30}
 

@@ -71,7 +71,7 @@ class LQRBalanceController:
         print(f"[LQR] 加载二次多项式系数, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
 
         # 目标值
-        self.L0_target = 0.18
+        self.L0_target = 0.15
         self.x_target = 0.0
         self.v_target = 0.0
 
@@ -79,8 +79,8 @@ class LQRBalanceController:
         self.state = StateEstimator()
 
         # 腿长 PID
-        self.pid_L0_r = PID(p=5000.0, i=20.0, d=3000.0, integral_limit=50.0, output_limit=300.0)
-        self.pid_L0_l = PID(p=5000.0, i=20.0, d=3000.0, integral_limit=50.0, output_limit=300.0)
+        self.pid_L0_r = PID(p=3000.0, i=10.0, d=2000.0, integral_limit=50.0, output_limit=300.0)
+        self.pid_L0_l = PID(p=3000.0, i=10.0, d=2000.0, integral_limit=50.0, output_limit=300.0)
 
         # 监控
         self.T = 0.0
