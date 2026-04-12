@@ -60,9 +60,7 @@ class PIDBalanceController:
         self.pitch_ref = 0.0
 
         # 轮式里程计
-        self._last_wheel_pos = [0.0, 0.0]
         self._odom_x = 0.0
-        self._odom_inited = False
 
     def compute(self, imu, motors):
         """
@@ -77,16 +75,10 @@ class PIDBalanceController:
         joint_pos = [motors[j].pos for j in range(4)]
         pitch = imu.p
 
-        # 简易轮式里程计
-        right_wp = motors[4].pos
-        left_wp = -motors[5].pos
-        if not self._odom_inited:
-            self._last_wheel_pos = [right_wp, left_wp]
-            self._odom_inited = True
-        d_r = right_wp - self._last_wheel_pos[0]
-        d_l = left_wp - self._last_wheel_pos[1]
-        self._last_wheel_pos = [right_wp, left_wp]
-        body_vx = (d_r + d_l) * 0.5 * 0.088 / 0.004
+        # 轮式里程计（直接用电机反馈速度）
+        wheel_vel_r = motors[4].vel
+        wheel_vel_l = -motors[5].vel
+        body_vx = (wheel_vel_r + wheel_vel_l) * 0.5 * 0.088
         self._odom_x += body_vx * 0.004
         body_x = self._odom_x
 

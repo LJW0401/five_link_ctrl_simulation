@@ -47,8 +47,8 @@ def main():
                 MotorData(pos=GBC486.joint_pos[1], vel=GBC486.joint_vel[1]),
                 MotorData(pos=GBC486.joint_pos[2], vel=GBC486.joint_vel[2]),
                 MotorData(pos=GBC486.joint_pos[3], vel=GBC486.joint_vel[3]),
-                MotorData(pos=GBC486.right_wheel_pos),
-                MotorData(pos=GBC486.left_wheel_pos),
+                MotorData(pos=GBC486.right_wheel_pos, vel=GBC486.wheel_vel[0]),
+                MotorData(pos=GBC486.left_wheel_pos, vel=GBC486.wheel_vel[1]),
             ]
 
             joint_torque, wheel_torque = ctrl.compute(imu, motors)

@@ -97,10 +97,8 @@ class StateEstimator:
         self.leg = [LegState(), LegState()]   # [右腿, 左腿]
         self.body = BodyState()
 
-        # 轮式里程计内部状态
-        self._last_wheel_pos = [0.0, 0.0]  # [右轮, 左轮]
+        # 轮式里程计
         self._odom_x = 0.0
-        self._odom_inited = False
 
     def update(self, imu, motors, dt=0.004):
         """
@@ -112,20 +110,9 @@ class StateEstimator:
                     顺序: [右前关节, 右后关节, 左前关节, 左后关节, 右轮, 左轮]
             dt:     控制周期 (s)
         """
-        # --- 轮式里程计 ---
-        right_wheel_pos = motors[4].pos
-        left_wheel_pos = -motors[5].pos   # 左轮方向取反
-
-        if not self._odom_inited:
-            self._last_wheel_pos = [right_wheel_pos, left_wheel_pos]
-            self._odom_inited = True
-
-        d_right = right_wheel_pos - self._last_wheel_pos[0]
-        d_left = left_wheel_pos - self._last_wheel_pos[1]
-        self._last_wheel_pos = [right_wheel_pos, left_wheel_pos]
-
-        wheel_vel_r = d_right / dt
-        wheel_vel_l = d_left / dt
+        # --- 轮式里程计（直接用电机反馈速度） ---
+        wheel_vel_r = motors[4].vel
+        wheel_vel_l = -motors[5].vel   # 左轮方向取反
         body_vx = (wheel_vel_r + wheel_vel_l) * 0.5 * WHEEL_RADIUS
         self._odom_x += body_vx * dt
 
