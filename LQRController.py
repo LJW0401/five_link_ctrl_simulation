@@ -123,7 +123,7 @@ class LQRBalanceController:
             k = self.k_table.get_k(leg.L0)
 
             x = [
-                leg.theta,
+                leg.Theta,
                 leg.dTheta,
                 body_x - self.x_target,
                 body_vx - self.v_target,
@@ -132,11 +132,11 @@ class LQRBalanceController:
             ]
 
             x = [
-                leg.theta,
+                leg.Theta,
                 leg.dTheta,
                 0,0,0,0]
             
-            # x = [0,0,0,0,0,0]  # --- IGNORE ---
+            x = [0,0,0,0,0,0]  # --- IGNORE ---
             
 
             T, Tp = calc_lqr(k, x)
@@ -152,20 +152,16 @@ class LQRBalanceController:
         # wheel_torque = 0
 
         # --- 腿长 PID + 重力前馈 ---
-        ff_r = StateEstimator.gravity_feedforward(self.state.leg[0].theta)
+        ff_r = StateEstimator.gravity_feedforward(self.state.leg[0].Theta)
         F0_r = self.pid_L0_r.calc(self.state.leg[0].L0, self.L0_target) + ff_r
 
-        ff_l = StateEstimator.gravity_feedforward(self.state.leg[1].theta)
+        ff_l = StateEstimator.gravity_feedforward(self.state.leg[1].Theta)
         F0_l = self.pid_L0_l.calc(self.state.leg[1].L0, self.L0_target) + ff_l
 
         # --- VMC ---
-        self.state.vmc_r.F0 = F0_r
-        self.state.vmc_r.Tp = self.Tp_r
-        self.state.vmc_r.vmc_calc_torque()
+        self.state.vmc_r.calc_torque(F0_r, self.Tp_r)
 
-        self.state.vmc_l.F0 = F0_l
-        self.state.vmc_l.Tp = self.Tp_l
-        self.state.vmc_l.vmc_calc_torque()
+        self.state.vmc_l.calc_torque(F0_l, self.Tp_l)
 
         joint_torque = [
             -self.state.vmc_r.torque_set[1], # 右前

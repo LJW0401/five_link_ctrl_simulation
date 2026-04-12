@@ -1,12 +1,12 @@
 """
 腿部与机体状态估计模块
-参考: Modular_Balancing_Robot_Controller/application/chassis/chassis_balance.c
 
 坐标约定:
   phi0  — 虚拟腿极角（正运动学输出）
   phi   — 机体倾角 = -pitch
   theta — 摆杆相对竖直方向的夹角 = π/2 - phi0 - phi = π/2 - phi0 + pitch
   theta = 0 时腿竖直向下
+  所有方向均从机体右侧看
 
 传感器接口:
   IMUData  — 模拟机体 IMU（角度/角速度/加速度）
@@ -52,24 +52,19 @@ class LegState:
         # 腿长
         self.L0 = 0.0
         self.dL0 = 0.0
-        self.ddL0 = 0.0
 
         # 虚拟腿极角
-        self.phi0 = 0.0
+        self.Phi0 = 0.0
         self.dPhi0 = 0.0
-        self.ddPhi0 = 0.0
 
         # 摆杆夹角（相对竖直）
-        self.theta = 0.0
+        self.Theta = 0.0
         self.dTheta = 0.0
-        self.ddTheta = 0.0
 
         # 上一时刻值（用于数值微分）
         self._last_L0 = 0.0
-        self._last_dL0 = 0.0
-        self._last_phi0 = 0.0
-        self._last_dPhi0 = 0.0
-        self._last_dTheta = 0.0
+        self._last_Phi0 = 0.0
+        self._last_Theta = 0.0
         self._first = True
 
 
@@ -83,7 +78,7 @@ class BodyState:
 
 
 GRAVITY = 9.81
-BODY_MASS = 15.8     # 机体质量 (kg)
+BODY_MASS = 8.4     # 机体质量 (kg)
 WHEEL_MASS = 0.322   # 单轮质量 (kg)
 WHEEL_RADIUS = 0.088 # 轮子半径 (m)
 
@@ -112,7 +107,7 @@ class StateEstimator:
         """
         # --- 轮式里程计（直接用电机反馈速度） ---
         wheel_vel_r = motors[4].vel
-        wheel_vel_l = -motors[5].vel   # 左轮方向取反
+        wheel_vel_l = motors[5].vel
         body_vx = (wheel_vel_r + wheel_vel_l) * 0.5 * WHEEL_RADIUS
         self._odom_x += body_vx * dt
 
@@ -131,12 +126,9 @@ class StateEstimator:
         ]
 
         # --- 右腿正运动学 ---
-        self.vmc_r.vmc_calc_pos(#右关节转向是反的
+        self.vmc_r.calc_forward_kinematics(
             phi1=-joint_pos[1] + math.pi,
             phi4=-joint_pos[0],
-            pitch=imu.p,
-            gyro=imu.dp,
-            dt=dt,
         )
 
         # print(f"VMC 右腿: phi1={self.vmc_r.phi1:.3f} rad, phi4={self.vmc_r.phi4:.3f} rad, ")
@@ -144,12 +136,9 @@ class StateEstimator:
         # print(f"       dL0={self.vmc_r.d_L0:.3f} m/s, dPhi0={self.vmc_r.d_phi0:.3f} rad/s, dTheta={self.vmc_r.d_theta:.3f} rad/s")
 
         # --- 左腿正运动学 ---
-        self.vmc_l.vmc_calc_pos(
+        self.vmc_l.calc_forward_kinematics(
             phi1=joint_pos[3] + math.pi,
             phi4=joint_pos[2],
-            pitch=-imu.p,
-            gyro=-imu.dp,
-            dt=dt,
         )
 
         # print(f"VMC 左腿: phi1={self.vmc_l.phi1:.3f} rad, phi4={self.vmc_l.phi4:.3f} rad, ")
@@ -157,47 +146,40 @@ class StateEstimator:
         # print(f"       dL0={self.vmc_l.d_L0:.3f} m/s, dPhi0={self.vmc_l.d_phi0:.3f} rad/s, dTheta={self.vmc_l.d_theta:.3f} rad/s")
 
         # --- 更新各腿状态 ---
-        self._update_leg(0, self.vmc_r, dt)  # 右腿
-        self._update_leg(1, self.vmc_l, dt)  # 左腿
+        self._update_leg(0, self.vmc_r, self.body.phi, dt)  # 右腿
+        self._update_leg(1, self.vmc_l, self.body.phi, dt)  # 左腿
 
         print("状态估计: ")
-        print(f"         右腿 L0={self.leg[0].L0:.3f} m, phi0={self.leg[0].phi0:.3f} rad, theta={self.leg[0].theta:.3f} rad")
+        print(f"         右腿 L0={self.leg[0].L0:.3f} m, phi0={self.leg[0].Phi0:.3f} rad, theta={self.leg[0].Theta:.3f} rad")
         print(f"         右腿 dL0={self.leg[0].dL0:.3f} m/s, dPhi0={self.leg[0].dPhi0:.3f} rad/s, dTheta={self.leg[0].dTheta:.3f} rad/s")
-        print(f"         左腿 L0={self.leg[1].L0:.3f} m, phi0={self.leg[1].phi0:.3f} rad, theta={self.leg[1].theta:.3f} rad")
+        print("")
+        print(f"         左腿 L0={self.leg[1].L0:.3f} m, phi0={self.leg[1].Phi0:.3f} rad, theta={self.leg[1].Theta:.3f} rad")
         print(f"         左腿 dL0={self.leg[1].dL0:.3f} m/s, dPhi0={self.leg[1].dPhi0:.3f} rad/s, dTheta={self.leg[1].dTheta:.3f} rad/s")
 
-    def _update_leg(self, idx, vmc, dt):
+    def _update_leg(self, idx, vmc, body_phi, dt):
         """更新单条腿的状态"""
         leg = self.leg[idx]
 
         # ===== 位置 =====
         leg.L0 = vmc.L0
-        leg.phi0 = vmc.phi0
-        # theta 直接使用 VMC 内部计算值（已处理左右腿镜像）
-        leg.theta = vmc.theta
+        leg.Phi0 = vmc.Phi0
+        leg.Theta = math.pi/2.0 + body_phi - leg.Phi0
 
         if leg._first:
             leg._last_L0 = leg.L0
-            leg._last_phi0 = leg.phi0
+            leg._last_Phi0 = leg.Phi0
+            leg._last_Theta = leg.Theta
             leg._first = False
 
         # ===== 速度（数值微分） =====
         leg.dL0 = (leg.L0 - leg._last_L0) / dt
-        leg.dPhi0 = (leg.phi0 - leg._last_phi0) / dt
-        # dTheta 直接使用 VMC 内部值（已处理镜像）
-        leg.dTheta = vmc.d_theta
-
-        # ===== 加速度（数值微分） =====
-        leg.ddL0 = (leg.dL0 - leg._last_dL0) / dt
-        leg.ddPhi0 = (leg.dPhi0 - leg._last_dPhi0) / dt
-        leg.ddTheta = (leg.dTheta - leg._last_dTheta) / dt
+        leg.dPhi0 = (leg.Phi0 - leg._last_Phi0) / dt
+        leg.dTheta = (leg.Theta - leg._last_Theta) / dt
 
         # ===== 保存上一时刻 =====
         leg._last_L0 = leg.L0
-        leg._last_dL0 = leg.dL0
-        leg._last_phi0 = leg.phi0
-        leg._last_dPhi0 = leg.dPhi0
-        leg._last_dTheta = leg.dTheta
+        leg._last_Phi0 = leg.Phi0
+        leg._last_Theta = leg.Theta
 
     @staticmethod
     def gravity_feedforward(theta):

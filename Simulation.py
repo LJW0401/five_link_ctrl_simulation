@@ -51,10 +51,12 @@ def main():
                 MotorData(pos=GBC486.left_wheel_pos, vel=GBC486.wheel_vel[1]),
             ]
 
-            joint_torque, wheel_torque = ctrl.compute(imu, motors)
 
             # 更新状态估计（用于监控）
             state.update(imu, motors)
+            
+            # 计算控制输出
+            joint_torque, wheel_torque = ctrl.compute(imu, motors)
 
             GBC486.joint_torque = joint_torque
             GBC486.wheel_torque = [wheel_torque, wheel_torque]
