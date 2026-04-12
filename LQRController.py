@@ -83,7 +83,7 @@ class LQRBalanceController:
         print(f"[LQR] 加载K矩阵查找表: {n}点, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
 
         # 目标值
-        self.L0_target = 0.15
+        self.L0_target = 0.18
         self.x_target = 0.0
         self.v_target = 0.0
 
@@ -159,10 +159,10 @@ class LQRBalanceController:
         self.state.vmc_l.vmc_calc_torque()
 
         joint_torque = [
-            self.state.vmc_r.torque_set[1],
-            self.state.vmc_r.torque_set[0],
-            self.state.vmc_l.torque_set[0],
-            self.state.vmc_l.torque_set[1],
+            self.state.vmc_r.torque_set[1], # 右前
+            self.state.vmc_r.torque_set[0], # 右后
+            -self.state.vmc_l.torque_set[1], # 左前
+            -self.state.vmc_l.torque_set[0], # 左后
         ]
 
         return joint_torque, wheel_torque
