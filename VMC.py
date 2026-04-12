@@ -138,6 +138,7 @@ class leg_VMC:
         返回:
             (torque1, torque4): 两个驱动关节的力矩 (Nm)
         """
+        self.calc_jacobian()
         torque1 = self.j11 * F0 + self.j12 * Tp
         torque4 = self.j21 * F0 + self.j22 * Tp
         
@@ -160,6 +161,5 @@ class leg_VMC:
             (torque1, torque4): 两个驱动关节的力矩 (Nm)
         """
         self.calc_forward_kinematics(phi1, phi4)
-        self.calc_jacobian()
         
         return self.calc_torque(F0, Tp)

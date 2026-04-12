@@ -8,6 +8,7 @@ LQR 状态反馈控制器
 控制输出: T (轮子力矩), Tp (髋关节力矩)
 """
 
+import math
 import json
 import os
 from StateEstimator import StateEstimator, IMUData, MotorData
@@ -91,13 +92,16 @@ class LQRBalanceController:
         self.state = StateEstimator(self.leg_params)
 
         # 腿长 PID
-        self.pid_L0_r = PID(p=3000.0, i=10.0, d=2000.0, integral_limit=50.0, output_limit=300.0)
-        self.pid_L0_l = PID(p=3000.0, i=10.0, d=2000.0, integral_limit=50.0, output_limit=300.0)
+        self.pid_L0_r = PID(p=2000.0, i=10.0, d=9000.0, integral_limit=50.0, output_limit=300.0)
+        self.pid_L0_l = PID(p=2000.0, i=10.0, d=9000.0, integral_limit=50.0, output_limit=300.0)
 
         # 监控
         self.T = 0.0
         self.Tp_r = 0.0
         self.Tp_l = 0.0
+
+        # 计数器
+        self.t_count = 0
 
     def compute(self, imu, motors):
         """
@@ -109,6 +113,8 @@ class LQRBalanceController:
             joint_torque: [右前, 右后, 左前, 左后]
             wheel_torque: 左右相同
         """
+        self.t_count += 1
+
         self.state.update(imu, motors)
 
         phi = self.state.body.phi
@@ -132,11 +138,11 @@ class LQRBalanceController:
             ]
 
             x = [
-                leg.Theta,
+                leg.Theta - 0.3 * math.sin(self.t_count * 0.01),  # 以站立姿态为目标
                 leg.dTheta,
                 0,0,0,0]
             
-            x = [0,0,0,0,0,0]  # --- IGNORE ---
+            # x = [0,0,0,0,0,0]  # --- IGNORE ---
             
 
             T, Tp = calc_lqr(k, x)
@@ -149,7 +155,7 @@ class LQRBalanceController:
 
         self.T = wheel_torque_sum / 2.0
         wheel_torque = max(-4.0, min(4.0, self.T))
-        # wheel_torque = 0
+        wheel_torque = 0
 
         # --- 腿长 PID + 重力前馈 ---
         ff_r = StateEstimator.gravity_feedforward(self.state.leg[0].Theta)
