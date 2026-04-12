@@ -84,7 +84,7 @@ class LQRBalanceController:
         print(f"[LQR] 加载K矩阵查找表: {n}点, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
 
         # 目标值
-        self.L0_target = 0.18
+        self.L0_target = 0.2
         self.x_target = 0.0
         self.v_target = 0.0
 
@@ -131,16 +131,16 @@ class LQRBalanceController:
             x = [
                 leg.Theta,
                 leg.dTheta,
-                body_x - self.x_target,
-                body_vx - self.v_target,
-                phi,
-                phi_dot,
+                (body_x - self.x_target),
+                (body_vx - self.v_target),
+                -phi,
+                -phi_dot,
             ]
 
-            x = [
-                leg.Theta - 0.3 * math.sin(self.t_count * 0.01),  # 以站立姿态为目标
-                leg.dTheta,
-                0,0,0,0]
+            # x = [
+            #     leg.Theta,  # 以站立姿态为目标
+            #     leg.dTheta,
+            #     0,0,0,0]
             
             # x = [0,0,0,0,0,0]  # --- IGNORE ---
             
@@ -148,14 +148,15 @@ class LQRBalanceController:
             T, Tp = calc_lqr(k, x)
             wheel_torque_sum += T
 
+            # Tp = -Tp
             if i == 0:
                 self.Tp_r = Tp
             else:
                 self.Tp_l = Tp
 
         self.T = wheel_torque_sum / 2.0
-        wheel_torque = max(-4.0, min(4.0, self.T))
-        wheel_torque = 0
+        wheel_torque = -max(-4.0, min(4.0, self.T))
+        # wheel_torque = 0
 
         # --- 腿长 PID + 重力前馈 ---
         ff_r = StateEstimator.gravity_feedforward(self.state.leg[0].Theta)

@@ -150,6 +150,8 @@ class StateEstimator:
         self._update_leg(1, self.vmc_l, self.body.phi, dt)  # 左腿
 
         print("状态估计: ")
+        print(f"         机体 phi={self.body.phi:.3f} rad, phi_dot={self.body.phi_dot:.3f} rad/s, x={self.body.x:.3f} m, x_dot={self.body.x_dot:.3f} m/s")
+        print("")
         print(f"         右腿 L0={self.leg[0].L0:.3f} m, phi0={self.leg[0].Phi0:.3f} rad, theta={self.leg[0].Theta:.3f} rad")
         print(f"         右腿 dL0={self.leg[0].dL0:.3f} m/s, dPhi0={self.leg[0].dPhi0:.3f} rad/s, dTheta={self.leg[0].dTheta:.3f} rad/s")
         print("")

@@ -35,8 +35,10 @@ DEFAULT_LEG_PARAMS = {
     "l5": 0.0,               # A-E距离 (m)
 }
 
-DEFAULT_Q = [100.0, 1.0, 500.0, 100.0, 5000.0, 1.0]
-DEFAULT_R = [250.0, 100.0]
+#           [theta, d_theta, x,       d_x,   phi,    d_phi] 
+DEFAULT_Q = [50.0,   1.0,     700.0, 100.0, 7000.0, 1.0]
+#           [T (wheel), Tp (hip)]
+DEFAULT_R = [12.0, 1.0]
 
 DEFAULT_L0_RANGE = {"min": 0.10, "max": 0.40, "n_points": 50}
 
