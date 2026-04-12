@@ -132,14 +132,17 @@ class StateEstimator:
 
         # --- 右腿正运动学 ---
         self.vmc_r.vmc_calc_pos(
-            phi1=joint_pos[0] + math.pi,
-            phi4=joint_pos[1],
+            phi1=-joint_pos[1] + math.pi,  # 右后关节取反并加 π（镜像）
+            phi4=-joint_pos[0],
             pitch=imu.p,
             gyro=imu.dp,
             dt=dt,
         )
 
-        # --- 左腿正运动学（pitch/gyro 取反） ---
+        # print(f"VMC 右腿: phi1={self.vmc_r.phi1:.3f} rad, phi4={self.vmc_r.phi4:.3f} rad, ")
+        # print(f"       L0={self.vmc_r.L0:.3f} m, phi0={self.vmc_r.phi0:.3f} rad, theta={self.vmc_r.theta:.3f} rad")
+
+        # --- 左腿正运动学 ---
         self.vmc_l.vmc_calc_pos(
             phi1=joint_pos[3] + math.pi,
             phi4=joint_pos[2],
@@ -147,6 +150,9 @@ class StateEstimator:
             gyro=-imu.dp,
             dt=dt,
         )
+
+        # print(f"VMC 左腿: phi1={self.vmc_l.phi1:.3f} rad, phi4={self.vmc_l.phi4:.3f} rad, ")
+        # print(f"       L0={self.vmc_l.L0:.3f} m, phi0={self.vmc_l.phi0:.3f} rad, theta={self.vmc_l.theta:.3f} rad")
 
         # --- 更新各腿状态 ---
         self._update_leg(0, self.vmc_r, dt)  # 右腿
