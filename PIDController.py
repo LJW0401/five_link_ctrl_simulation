@@ -59,7 +59,37 @@ class PIDBalanceController:
         self.joint_targets = [0.0, 0.0, 0.0, 0.0]
         self.pitch_ref = 0.0
 
-    def compute(self, joint_pos, pitch, body_x, body_vx=0.0, gyro_y=0.0):
+        # 轮式里程计
+        self._last_wheel_pos = [0.0, 0.0]
+        self._odom_x = 0.0
+        self._odom_inited = False
+
+    def compute(self, imu, motors):
+        """
+        参数:
+            imu:    IMUData — 机体 IMU 数据
+            motors: list[MotorData] — 6 个电机数据
+                    顺序: [右前关节, 右后关节, 左前关节, 左后关节, 右轮, 左轮]
+        返回:
+            joint_torque: [右前, 右后, 左前, 左后]
+            wheel_torque: 左右相同
+        """
+        joint_pos = [motors[j].pos for j in range(4)]
+        pitch = imu.p
+
+        # 简易轮式里程计
+        right_wp = motors[4].pos
+        left_wp = -motors[5].pos
+        if not self._odom_inited:
+            self._last_wheel_pos = [right_wp, left_wp]
+            self._odom_inited = True
+        d_r = right_wp - self._last_wheel_pos[0]
+        d_l = left_wp - self._last_wheel_pos[1]
+        self._last_wheel_pos = [right_wp, left_wp]
+        body_vx = (d_r + d_l) * 0.5 * 0.088 / 0.004
+        self._odom_x += body_vx * 0.004
+        body_x = self._odom_x
+
         self.tick += 1
         t = self.tick * 0.004
         self.theta_target = self.theta_amplitude * math.sin(2 * math.pi * self.theta_frequency * t)

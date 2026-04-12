@@ -10,7 +10,7 @@ LQR 状态反馈控制器
 
 import json
 import os
-from StateEstimator import StateEstimator
+from StateEstimator import StateEstimator, IMUData, MotorData
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "lqr_config.json")
 
@@ -99,16 +99,22 @@ class LQRBalanceController:
         self.Tp_r = 0.0
         self.Tp_l = 0.0
 
-    def compute(self, joint_pos, pitch, body_x, body_vx=0.0, gyro_y=0.0):
+    def compute(self, imu, motors):
         """
+        参数:
+            imu:    IMUData — 机体 IMU 数据
+            motors: list[MotorData] — 6 个电机数据
+                    顺序: [右前关节, 右后关节, 左前关节, 左后关节, 右轮, 左轮]
         返回:
             joint_torque: [右前, 右后, 左前, 左后]
             wheel_torque: 左右相同
         """
-        self.state.update(joint_pos, pitch, gyro_y, body_x, body_vx)
+        self.state.update(imu, motors)
 
-        phi = -pitch
-        phi_dot = -gyro_y
+        phi = self.state.body.phi
+        phi_dot = self.state.body.phi_dot
+        body_x = self.state.body.x
+        body_vx = self.state.body.x_dot
 
         # --- LQR ---
         wheel_torque_sum = 0.0

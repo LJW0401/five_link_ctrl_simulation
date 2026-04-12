@@ -14,7 +14,7 @@ def create_controller(ctrl_type=CTRL_LQR):
     参数:
         ctrl_type: "pid" 或 "lqr"
     返回:
-        控制器实例（都有 compute(joint_pos, pitch, body_x, body_vx, gyro_y) 接口）
+        控制器实例（都有 compute(imu: IMUData, motors: list[MotorData]) 接口）
     """
     if ctrl_type == CTRL_PID:
         from PIDController import PIDBalanceController

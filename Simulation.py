@@ -6,7 +6,7 @@ import math
 from environment import *
 from keyboard import *
 from BalanceController import create_controller, CTRL_LQR, CTRL_PID
-from StateEstimator import StateEstimator
+from StateEstimator import StateEstimator, IMUData, MotorData
 
 
 def main():
@@ -35,17 +35,26 @@ def main():
             GBC486.sensor_read_data()
 
         if i % t2 == 0:
-            joint_torque, wheel_torque = ctrl.compute(
-                joint_pos=GBC486.joint_pos,
-                pitch=GBC486.euler[1],
-                body_x=GBC486.body_x,
-                body_vx=GBC486.body_vx,
-                gyro_y=GBC486.gyro[1],
+            # 构造 IMU 数据
+            imu = IMUData(
+                r=GBC486.euler[0], p=GBC486.euler[1], y=GBC486.euler[2],
+                dr=GBC486.gyro[0], dp=GBC486.gyro[1], dy=GBC486.gyro[2],
             )
 
+            # 构造电机数据: [右前关节, 右后关节, 左前关节, 左后关节, 右轮, 左轮]
+            motors = [
+                MotorData(pos=GBC486.joint_pos[0], vel=GBC486.joint_vel[0]),
+                MotorData(pos=GBC486.joint_pos[1], vel=GBC486.joint_vel[1]),
+                MotorData(pos=GBC486.joint_pos[2], vel=GBC486.joint_vel[2]),
+                MotorData(pos=GBC486.joint_pos[3], vel=GBC486.joint_vel[3]),
+                MotorData(pos=GBC486.right_wheel_pos),
+                MotorData(pos=GBC486.left_wheel_pos),
+            ]
+
+            joint_torque, wheel_torque = ctrl.compute(imu, motors)
+
             # 更新状态估计（用于监控）
-            state.update(GBC486.joint_pos, GBC486.euler[1], GBC486.gyro[1],
-                         GBC486.body_x, GBC486.body_vx)
+            state.update(imu, motors)
 
             GBC486.joint_torque = joint_torque
             GBC486.wheel_torque = [wheel_torque, wheel_torque]
@@ -53,12 +62,10 @@ def main():
 
         if i % t3 == 0:
             cmd = keyboard.get_command()
-            phi = -GBC486.euler[1]
-            phi_dot = -GBC486.gyro[1]
             print(
                 f"θ={state.leg[0].theta:+.4f} dθ={state.leg[0].dTheta:+.3f} | "
-                f"x={GBC486.body_x:+.4f} dx={GBC486.body_vx:+.3f} | "
-                f"φ={phi:+.4f} dφ={phi_dot:+.3f} | "
+                f"x={state.body.x:+.4f} dx={state.body.x_dot:+.3f} | "
+                f"φ={state.body.phi:+.4f} dφ={state.body.phi_dot:+.3f} | "
                 f"L0={state.leg[0].L0:.3f} whl={GBC486.wheel_torque[0]:+.2f}"
             )
 

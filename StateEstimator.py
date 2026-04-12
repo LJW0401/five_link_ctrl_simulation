@@ -7,10 +7,43 @@
   phi   — 机体倾角 = -pitch
   theta — 摆杆相对竖直方向的夹角 = π/2 - phi0 - phi = π/2 - phi0 + pitch
   theta = 0 时腿竖直向下
+
+传感器接口:
+  IMUData  — 模拟机体 IMU（角度/角速度/加速度）
+  MotorData — 模拟单个电机反馈（位置/速度/力矩）
+  电机顺序: [右前关节, 右后关节, 左前关节, 左后关节, 右轮, 左轮]
 """
 
 import math
 from VMC import leg_VMC
+
+
+class IMUData:
+    """IMU 传感器数据"""
+    __slots__ = ('r', 'p', 'y', 'dr', 'dp', 'dy', 'ax', 'ay', 'az')
+
+    def __init__(self, r=0.0, p=0.0, y=0.0,
+                 dr=0.0, dp=0.0, dy=0.0,
+                 ax=0.0, ay=0.0, az=0.0):
+        self.r = r      # roll  (rad)
+        self.p = p      # pitch (rad)
+        self.y = y      # yaw   (rad)
+        self.dr = dr     # roll  角速度 (rad/s)
+        self.dp = dp     # pitch 角速度 (rad/s)
+        self.dy = dy     # yaw   角速度 (rad/s)
+        self.ax = ax     # x 加速度 (m/s²)
+        self.ay = ay     # y 加速度 (m/s²)
+        self.az = az     # z 加速度 (m/s²)
+
+
+class MotorData:
+    """单个电机反馈数据"""
+    __slots__ = ('pos', 'vel', 'tor')
+
+    def __init__(self, pos=0.0, vel=0.0, tor=0.0):
+        self.pos = pos   # 反馈位置 (rad)
+        self.vel = vel   # 反馈速度 (rad/s)
+        self.tor = tor   # 输出力矩 (Nm)
 
 
 class LegState:
@@ -52,6 +85,7 @@ class BodyState:
 GRAVITY = 9.81
 BODY_MASS = 15.8     # 机体质量 (kg)
 WHEEL_MASS = 0.322   # 单轮质量 (kg)
+WHEEL_RADIUS = 0.088 # 轮子半径 (m)
 
 
 class StateEstimator:
@@ -63,30 +97,58 @@ class StateEstimator:
         self.leg = [LegState(), LegState()]   # [右腿, 左腿]
         self.body = BodyState()
 
-    def update(self, joint_pos, pitch, gyro_y, body_x, body_vx, dt=0.004):
+        # 轮式里程计内部状态
+        self._last_wheel_pos = [0.0, 0.0]  # [右轮, 左轮]
+        self._odom_x = 0.0
+        self._odom_inited = False
+
+    def update(self, imu, motors, dt=0.004):
         """
         更新全部状态
 
         参数:
-            joint_pos: [右前, 右后, 左前, 左后] 关节角度
-            pitch:     俯仰角 (rad)
-            gyro_y:    俯仰角速度 (rad/s)
-            body_x:    机体位移 (m)
-            body_vx:   机体速度 (m/s)
-            dt:        控制周期 (s)
+            imu:    IMUData — 机体 IMU 数据
+            motors: list[MotorData] — 6 个电机数据
+                    顺序: [右前关节, 右后关节, 左前关节, 左后关节, 右轮, 左轮]
+            dt:     控制周期 (s)
         """
+        # --- 轮式里程计 ---
+        right_wheel_pos = motors[4].pos
+        left_wheel_pos = -motors[5].pos   # 左轮方向取反
+
+        if not self._odom_inited:
+            self._last_wheel_pos = [right_wheel_pos, left_wheel_pos]
+            self._odom_inited = True
+
+        d_right = right_wheel_pos - self._last_wheel_pos[0]
+        d_left = left_wheel_pos - self._last_wheel_pos[1]
+        self._last_wheel_pos = [right_wheel_pos, left_wheel_pos]
+
+        wheel_vel_r = d_right / dt
+        wheel_vel_l = d_left / dt
+        body_vx = (wheel_vel_r + wheel_vel_l) * 0.5 * WHEEL_RADIUS
+        self._odom_x += body_vx * dt
+
         # --- 机体状态 ---
-        self.body.phi = -pitch
-        self.body.phi_dot = -gyro_y
-        self.body.x = body_x
+        self.body.phi = -imu.p
+        self.body.phi_dot = -imu.dp
+        self.body.x = self._odom_x
         self.body.x_dot = body_vx
+
+        # --- 关节角度（从电机位置加偏移） ---
+        joint_pos = [
+            motors[0].pos,   # 右前
+            motors[1].pos,   # 右后
+            motors[2].pos,   # 左前
+            motors[3].pos,   # 左后
+        ]
 
         # --- 右腿正运动学 ---
         self.vmc_r.vmc_calc_pos(
             phi1=joint_pos[0] + math.pi,
             phi4=joint_pos[1],
-            pitch=pitch,
-            gyro=gyro_y,
+            pitch=imu.p,
+            gyro=imu.dp,
             dt=dt,
         )
 
@@ -94,8 +156,8 @@ class StateEstimator:
         self.vmc_l.vmc_calc_pos(
             phi1=joint_pos[3] + math.pi,
             phi4=joint_pos[2],
-            pitch=-pitch,
-            gyro=-gyro_y,
+            pitch=-imu.p,
+            gyro=-imu.dp,
             dt=dt,
         )
 
