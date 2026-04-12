@@ -62,12 +62,12 @@ def main():
 
         if i % t3 == 0:
             cmd = keyboard.get_command()
-            print(
-                f"θ={state.leg[0].theta:+.4f} dθ={state.leg[0].dTheta:+.3f} | "
-                f"x={state.body.x:+.4f} dx={state.body.x_dot:+.3f} | "
-                f"φ={state.body.phi:+.4f} dφ={state.body.phi_dot:+.3f} | "
-                f"L0={state.leg[0].L0:.3f} whl={GBC486.wheel_torque[0]:+.2f}"
-            )
+            # print(
+            #     f"θ={state.leg[0].theta:+.4f} dθ={state.leg[0].dTheta:+.3f} | "
+            #     f"x={state.body.x:+.4f} dx={state.body.x_dot:+.3f} | "
+            #     f"φ={state.body.phi:+.4f} dφ={state.body.phi_dot:+.3f} | "
+            #     f"L0={state.leg[0].L0:.3f} whl={GBC486.wheel_torque[0]:+.2f}"
+            # )
 
 
 if __name__ == '__main__':
