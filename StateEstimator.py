@@ -76,6 +76,10 @@ class BodyState:
         self.x = 0.0         # 位移
         self.x_dot = 0.0     # 速度
 
+        self.r = 0.0             # roll
+        self.p = 0.0             # pitch
+        self.y = 0.0             # yaw
+
 
 GRAVITY = 9.81
 BODY_MASS = 8.4     # 机体质量 (kg)
@@ -117,6 +121,11 @@ class StateEstimator:
         self.body.x = self._odom_x
         self.body.x_dot = body_vx
 
+        # --- 机体姿态（监控用） ---
+        self.body.r = imu.r
+        self.body.p = imu.p
+        self.body.y = imu.y
+
         # --- 关节角度（从电机位置加偏移） ---
         joint_pos = [
             motors[0].pos,   # 右前
@@ -151,6 +160,7 @@ class StateEstimator:
 
         print("状态估计: ")
         print(f"         机体 phi={self.body.phi:.3f} rad, phi_dot={self.body.phi_dot:.3f} rad/s, x={self.body.x:.3f} m, x_dot={self.body.x_dot:.3f} m/s")
+        print(f"         机体 roll={imu.r:.3f} rad, pitch={imu.p:.3f} rad, yaw={imu.y:.3f} rad")
         print("")
         print(f"         右腿 L0={self.leg[0].L0:.3f} m, phi0={self.leg[0].Phi0:.3f} rad, theta={self.leg[0].Theta:.3f} rad")
         print(f"         右腿 dL0={self.leg[0].dL0:.3f} m/s, dPhi0={self.leg[0].dPhi0:.3f} rad/s, dTheta={self.leg[0].dTheta:.3f} rad/s")

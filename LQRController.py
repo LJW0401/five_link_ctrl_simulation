@@ -87,6 +87,7 @@ class LQRBalanceController:
         self.L0_target = 0.2
         self.x_target = 0.0
         self.v_target = 0.0
+        self.yaw_target = 0.0
 
         # 状态估计器（传入五连杆参数）
         self.state = StateEstimator(self.leg_params)
@@ -94,6 +95,9 @@ class LQRBalanceController:
         # 腿长 PID
         self.pid_L0_r = PID(p=2000.0, i=10.0, d=9000.0, integral_limit=50.0, output_limit=300.0)
         self.pid_L0_l = PID(p=2000.0, i=10.0, d=9000.0, integral_limit=50.0, output_limit=300.0)
+
+        #yaw PID
+        self.pid_yaw = PID(p=100.0, i=0.0, d=20.0, integral_limit=2.0, output_limit=4.0)
 
         # 监控
         self.T = 0.0
@@ -157,6 +161,10 @@ class LQRBalanceController:
         self.T = wheel_torque_sum / 2.0
         wheel_torque = -max(-4.0, min(4.0, self.T))
         # wheel_torque = 0
+        # --- yaw PID ---
+        yaw_error = self.state.body.y - self.yaw_target
+        yaw_correction = self.pid_yaw.calc(self.state.body.y, self.yaw_target)
+
 
         # --- 腿长 PID + 重力前馈 ---
         ff_r = StateEstimator.gravity_feedforward(self.state.leg[0].Theta)
