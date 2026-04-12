@@ -188,7 +188,6 @@ class leg_VMC:
         self.j11 = (self.l1 * math.sin(self.phi0 - self.phi3) * 
                    math.sin(self.phi1 - self.phi2)) / sin_phi3_phi2
         
-        
         self.j12 = (self.l1 * math.cos(self.phi0 - self.phi3) * 
                    math.sin(self.phi1 - self.phi2)) / (self.L0 * sin_phi3_phi2)
         
@@ -198,8 +197,8 @@ class leg_VMC:
         self.j22 = (self.l4 * math.cos(self.phi0 - self.phi2) * 
                    math.sin(self.phi3 - self.phi4)) / (self.L0 * sin_phi3_phi2)
         
-        self.torque_set[1] = self.j11 * self.F0 + self.j12 * self.Tp
-        self.torque_set[0] = self.j21 * self.F0 + self.j22 * self.Tp
+        self.torque_set[0] = self.j11 * self.F0 + self.j12 * self.Tp
+        self.torque_set[1] = self.j21 * self.F0 + self.j22 * self.Tp
 
     #Tp：扭转力；F0：支持力
 

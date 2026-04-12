@@ -131,6 +131,8 @@ class LQRBalanceController:
                 phi_dot,
             ]
 
+            # x = [0,0,0,0,0,0]  # --- IGNORE ---
+
             T, Tp = calc_lqr(k, x)
             wheel_torque_sum += T
 
@@ -141,6 +143,7 @@ class LQRBalanceController:
 
         self.T = wheel_torque_sum / 2.0
         wheel_torque = max(-4.0, min(4.0, self.T))
+        # wheel_torque = 0
 
         # --- 腿长 PID + 重力前馈 ---
         ff_r = StateEstimator.gravity_feedforward(self.state.leg[0].theta)
@@ -159,10 +162,10 @@ class LQRBalanceController:
         self.state.vmc_l.vmc_calc_torque()
 
         joint_torque = [
-            self.state.vmc_r.torque_set[1], # 右前
-            self.state.vmc_r.torque_set[0], # 右后
-            -self.state.vmc_l.torque_set[1], # 左前
-            -self.state.vmc_l.torque_set[0], # 左后
+            -self.state.vmc_r.torque_set[1], # 右前
+            -self.state.vmc_r.torque_set[0], # 右后
+            self.state.vmc_l.torque_set[1], # 左前
+            self.state.vmc_l.torque_set[0], # 左后
         ]
 
         return joint_torque, wheel_torque
