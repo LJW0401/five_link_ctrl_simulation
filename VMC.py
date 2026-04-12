@@ -166,7 +166,7 @@ class leg_VMC:
         
         # 计算theta和d_theta（状态变量，用于LQR控制）
         self.theta = math.pi/2.0 + PitchR - self.phi0
-        self.d_theta = GyroR + self.d_phi0
+        self.d_theta = -GyroR - self.d_phi0
         
         # 更新last_phi0
         self.last_phi0 = self.phi0

@@ -160,8 +160,11 @@ class StateEstimator:
         self._update_leg(0, self.vmc_r, dt)  # 右腿
         self._update_leg(1, self.vmc_l, dt)  # 左腿
 
-        print(f"状态估计: 右腿 L0={self.leg[0].L0:.3f} m, phi0={self.leg[0].phi0:.3f} rad, theta={self.leg[0].theta:.3f} rad")
+        print("状态估计: ")
+        print(f"         右腿 L0={self.leg[0].L0:.3f} m, phi0={self.leg[0].phi0:.3f} rad, theta={self.leg[0].theta:.3f} rad")
+        print(f"         右腿 dL0={self.leg[0].dL0:.3f} m/s, dPhi0={self.leg[0].dPhi0:.3f} rad/s, dTheta={self.leg[0].dTheta:.3f} rad/s")
         print(f"         左腿 L0={self.leg[1].L0:.3f} m, phi0={self.leg[1].phi0:.3f} rad, theta={self.leg[1].theta:.3f} rad")
+        print(f"         左腿 dL0={self.leg[1].dL0:.3f} m/s, dPhi0={self.leg[1].dPhi0:.3f} rad/s, dTheta={self.leg[1].dTheta:.3f} rad/s")
 
     def _update_leg(self, idx, vmc, dt):
         """更新单条腿的状态"""

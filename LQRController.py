@@ -131,7 +131,13 @@ class LQRBalanceController:
                 phi_dot,
             ]
 
+            x = [
+                leg.theta,
+                leg.dTheta,
+                0,0,0,0]
+            
             # x = [0,0,0,0,0,0]  # --- IGNORE ---
+            
 
             T, Tp = calc_lqr(k, x)
             wheel_torque_sum += T
