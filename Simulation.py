@@ -59,7 +59,7 @@ def main():
             joint_torque, wheel_torque = ctrl.compute(imu, motors)
 
             GBC486.joint_torque = joint_torque
-            GBC486.wheel_torque = [wheel_torque, wheel_torque]
+            GBC486.wheel_torque = wheel_torque
             GBC486.actuator_set_torque()
 
         if i % t3 == 0:

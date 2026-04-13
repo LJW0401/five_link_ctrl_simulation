@@ -97,7 +97,7 @@ class LQRBalanceController:
         self.pid_L0_l = PID(p=2000.0, i=10.0, d=9000.0, integral_limit=50.0, output_limit=300.0)
 
         #yaw PID
-        self.pid_yaw = PID(p=100.0, i=0.0, d=20.0, integral_limit=2.0, output_limit=4.0)
+        self.pid_yaw = PID(p=100.0, i=1.0, d=500.0, integral_limit=2.0, output_limit=4.0)
 
         # 监控
         self.T = 0.0
@@ -126,8 +126,8 @@ class LQRBalanceController:
         body_x = self.state.body.x
         body_vx = self.state.body.x_dot
 
-        # --- LQR ---
-        wheel_torque_sum = 0.0
+        # --- LQR → 驱动轮力矩（左右分开） ---
+        wheel_torque = [0.0, 0.0]  # [右轮, 左轮]
         for i in range(2):
             leg = self.state.leg[i]
             k = self.k_table.get_k(leg.L0)
@@ -141,29 +141,18 @@ class LQRBalanceController:
                 -phi_dot,
             ]
 
-            # x = [
-            #     leg.Theta,  # 以站立姿态为目标
-            #     leg.dTheta,
-            #     0,0,0,0]
-            
-            # x = [0,0,0,0,0,0]  # --- IGNORE ---
-            
-
             T, Tp = calc_lqr(k, x)
-            wheel_torque_sum += T
+            wheel_torque[i] = -max(-4.0, min(4.0, T))
 
-            # Tp = -Tp
             if i == 0:
                 self.Tp_r = Tp
             else:
                 self.Tp_l = Tp
 
-        self.T = wheel_torque_sum / 2.0
-        wheel_torque = -max(-4.0, min(4.0, self.T))
-        # wheel_torque = 0
         # --- yaw PID ---
-        yaw_error = self.state.body.y - self.yaw_target
         yaw_correction = self.pid_yaw.calc(self.state.body.y, self.yaw_target)
+        wheel_torque[0] += yaw_correction
+        wheel_torque[1] -= yaw_correction
 
 
         # --- 腿长 PID + 重力前馈 ---
