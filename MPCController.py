@@ -175,7 +175,7 @@ class MPCBalanceController:
         self.pid_L0_l = PID(p=2000.0, i=10.0, d=9000.0, integral_limit=50.0, output_limit=300.0)
 
         # yaw PID（差分轮子力矩）
-        self.pid_yaw = PID(p=100.0, i=1.0, d=500.0, integral_limit=2.0, output_limit=4.0)
+        self.pid_yaw = PID(p=10.0, i=0.1, d=30.0, integral_limit=2.0, output_limit=4.0)
 
         # warm start（两条腿各一份）
         self._U_prev = [np.zeros(2 * self.N), np.zeros(2 * self.N)]
