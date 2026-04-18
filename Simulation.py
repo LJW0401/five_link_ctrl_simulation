@@ -5,7 +5,7 @@ import time
 import math
 from environment import *
 from keyboard import *
-from BalanceController import create_controller, CTRL_LQR, CTRL_PID
+from BalanceController import create_controller, CTRL_LQR, CTRL_PID, CTRL_MPC
 from StateEstimator import StateEstimator, IMUData, MotorData
 
 
@@ -19,7 +19,7 @@ def main():
     keyboard = KeyboardController()
 
     # 选择控制器: CTRL_LQR 或 CTRL_PID
-    ctrl = create_controller(CTRL_LQR)
+    ctrl = create_controller(CTRL_MPC)
     # 监控用状态估计器（复用控制器的五连杆参数）
     leg_params = getattr(ctrl, 'leg_params', None)
     state = StateEstimator(leg_params)
