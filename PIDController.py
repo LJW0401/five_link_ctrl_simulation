@@ -26,10 +26,18 @@ class PITCH_PID:
 class POS_PID:
     """外环：位移 → pitch 目标"""
     KP_X = 0.05
-    KI_X = 0.0001
-    KP_V = 0.1
+    KI_X = 0.005
+    KP_V = 0.01
     INTEGRAL_LIMIT = 0.2
     OUTPUT_LIMIT = 0.3
+
+class YAW_PID:
+    """yaw → 左右轮差分力矩"""
+    KP = 2.0
+    KI = 0.0
+    KD = 1.0
+    INTEGRAL_LIMIT = 2.0
+    OUTPUT_LIMIT = 4.0
 
 
 class PIDBalanceController:
@@ -59,6 +67,10 @@ class PIDBalanceController:
         self.pid_x = PID(p=POS_PID.KP_X, i=POS_PID.KI_X, d=POS_PID.KP_V,
                          integral_limit=POS_PID.INTEGRAL_LIMIT, output_limit=POS_PID.OUTPUT_LIMIT)
 
+        self.pid_yaw = PID(p=YAW_PID.KP, i=YAW_PID.KI, d=YAW_PID.KD,
+                           integral_limit=YAW_PID.INTEGRAL_LIMIT, output_limit=YAW_PID.OUTPUT_LIMIT)
+
+        self.yaw_target = 0.0
         self.joint_targets = [0.0, 0.0, 0.0, 0.0]
         self.pitch_ref = 0.0
 
@@ -115,6 +127,11 @@ class PIDBalanceController:
 
         t_pitch = -self.pid_pitch.calc(pitch, self.pitch_ref)
         t_wheel = max(-4.0, min(4.0, t_pitch))
-        wheel_torque = [t_wheel, t_wheel]
+
+        # yaw PID → 左右差分
+        yaw_correction = self.pid_yaw.calc(self.state.body.y, self.yaw_target)
+        wheel_torque = [t_wheel + yaw_correction, t_wheel - yaw_correction]
+
+        print(f"yaw_correction={yaw_correction:.3f} | yaw={self.state.body.y:.3f} rad, yaw_target={self.yaw_target:.3f} rad")
 
         return joint_torque, wheel_torque
