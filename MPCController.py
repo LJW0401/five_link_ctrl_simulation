@@ -161,6 +161,12 @@ class MPCBalanceController:
         self.yaw_target = 0.0
         self.pitch_target = 0.0  # 机体 pitch 目标 (rad)
 
+        # |v_target| 超过此阈值进入速度控制模式：冻结进入瞬间的位置误差，
+        # 让 x_target 随 body_x 等速漂移，位置误差保持不变（不累加）
+        self.v_hold_threshold = 0.05
+        self._prev_v_mode = False
+        self._frozen_x_err = 0.0
+
         # 状态估计器
         self.state = StateEstimator(self.leg_params)
 
@@ -212,6 +218,15 @@ class MPCBalanceController:
         phi_dot = self.state.body.phi_dot
         body_x = self.state.body.x
         body_vx = self.state.body.x_dot
+
+        # 速度控制模式：冻结位置误差。进入瞬间记录 delta = body_x - x_target，
+        # 之后令 x_target = body_x - delta，使误差恒为 delta（不累加）
+        v_mode = abs(self.v_target) > self.v_hold_threshold
+        if v_mode:
+            if not self._prev_v_mode:
+                self._frozen_x_err = body_x - self.x_target
+            self.x_target = body_x - self._frozen_x_err
+        self._prev_v_mode = v_mode
 
         # --- MPC → 驱动轮力矩（左右独立） ---
         wheel_torque = [0.0, 0.0]
