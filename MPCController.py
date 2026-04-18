@@ -159,6 +159,7 @@ class MPCBalanceController:
         self.x_target = 0.0
         self.v_target = 0.0
         self.yaw_target = 0.0
+        self.pitch_target = 0.0  # 机体 pitch 目标 (rad)
 
         # 状态估计器
         self.state = StateEstimator(self.leg_params)
@@ -216,12 +217,13 @@ class MPCBalanceController:
         wheel_torque = [0.0, 0.0]
         for i in range(2):
             leg = self.state.leg[i]
+            # phi = -pitch，因此 -phi = pitch；误差 = pitch - pitch_target
             x0 = np.array([
                 leg.Theta,
                 leg.dTheta,
                 (body_x - self.x_target),
                 (body_vx - self.v_target),
-                -phi,
+                -phi - self.pitch_target,
                 -phi_dot,
             ])
             

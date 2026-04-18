@@ -88,6 +88,7 @@ class LQRBalanceController:
         self.x_target = 0.0
         self.v_target = 0.0
         self.yaw_target = 0.0
+        self.pitch_target = 0.0  # 机体 pitch 目标 (rad)
 
         # 状态估计器（传入五连杆参数）
         self.state = StateEstimator(self.leg_params)
@@ -132,12 +133,13 @@ class LQRBalanceController:
             leg = self.state.leg[i]
             k = self.k_table.get_k(leg.L0)
 
+            # phi = -pitch，因此 -phi = pitch；误差 = pitch - pitch_target
             x = [
                 leg.Theta,
                 leg.dTheta,
                 (body_x - self.x_target),
                 (body_vx - self.v_target),
-                -phi,
+                -phi - self.pitch_target,
                 -phi_dot,
             ]
 
