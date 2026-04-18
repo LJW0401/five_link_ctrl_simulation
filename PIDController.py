@@ -5,6 +5,7 @@ PID 倒立摆控制器（IK + 关节位置 PID + 级联轮子控制）
 import math
 from Controller import PID
 from VMC import leg_VMC
+from StateEstimator import StateEstimator
 
 
 class JOINT_PID:
@@ -18,15 +19,15 @@ class PITCH_PID:
     """内环：pitch → 轮子力矩"""
     KP = 12.0
     KI = 0.2
-    KD = 80.0
-    INTEGRAL_LIMIT = 1.0
+    KD = 100.0
+    INTEGRAL_LIMIT = 2.0
     OUTPUT_LIMIT = 4.0
 
 class POS_PID:
     """外环：位移 → pitch 目标"""
-    KP_X = 1.0
-    KI_X = 0.1
-    KP_V = 5.0
+    KP_X = 0.05
+    KI_X = 0.0001
+    KP_V = 0.1
     INTEGRAL_LIMIT = 0.2
     OUTPUT_LIMIT = 0.3
 
@@ -34,7 +35,7 @@ class POS_PID:
 class PIDBalanceController:
     """动态 IK + 关节 PID + 倒立摆轮子控制"""
 
-    def __init__(self):
+    def __init__(self, leg_params=None):
         self.L0_target = 0.25
         self.theta_target = 0.0
 
@@ -42,7 +43,9 @@ class PIDBalanceController:
         self.theta_frequency = 1.0
         self.tick = 0
 
-        self.vmc = leg_VMC()
+        self.leg_params = leg_params
+        self.state = StateEstimator(leg_params)
+        self.vmc = leg_VMC(leg_params)
 
         self.pid_joint = [
             PID(p=JOINT_PID.KP, i=JOINT_PID.KI, d=JOINT_PID.KD,
@@ -59,9 +62,6 @@ class PIDBalanceController:
         self.joint_targets = [0.0, 0.0, 0.0, 0.0]
         self.pitch_ref = 0.0
 
-        # 轮式里程计
-        self._odom_x = 0.0
-
     def compute(self, imu, motors):
         """
         参数:
@@ -72,15 +72,13 @@ class PIDBalanceController:
             joint_torque: [右前, 右后, 左前, 左后]
             wheel_torque: [右轮, 左轮]
         """
-        joint_pos = [motors[j].pos for j in range(4)]
-        pitch = imu.p
+        self.state.update(imu, motors)
 
-        # 轮式里程计（直接用电机反馈速度）
-        wheel_vel_r = motors[4].vel
-        wheel_vel_l = -motors[5].vel
-        body_vx = (wheel_vel_r + wheel_vel_l) * 0.5 * 0.088
-        self._odom_x += body_vx * 0.004
-        body_x = self._odom_x
+        joint_pos = [motors[j].pos for j in range(4)]
+        # StateEstimator 约定 phi = -pitch，保持原控制律极性
+        pitch = -self.state.body.phi
+        body_x = self.state.body.x
+        body_vx = self.state.body.x_dot
 
         self.tick += 1
         t = self.tick * 0.004
@@ -111,7 +109,7 @@ class PIDBalanceController:
             joint_torque[i] = self.pid_joint[i].calc(joint_pos[i], self.joint_targets[i])
 
         t_x = self.pid_x.calc(body_x, 0.0)
-        self.pitch_ref = -max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x))
+        self.pitch_ref = max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x))
 
         print(f"pitch={pitch:.3f} rad, pitch_ref={self.pitch_ref:.3f} rad | body_x={body_x:.3f} m, body_vx={body_vx:.3f} m/s")
 
