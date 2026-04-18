@@ -7,6 +7,7 @@ from environment import *
 from keyboard import *
 from BalanceController import create_controller, CTRL_LQR, CTRL_PID, CTRL_MPC
 from StateEstimator import StateEstimator, IMUData, MotorData
+from CommandServer import CommandServer, apply_to_controller
 
 
 def main():
@@ -26,6 +27,10 @@ def main():
 
     print(f"控制器: {type(ctrl).__name__} | 目标: L0={ctrl.L0_target:.3f}m")
 
+    # 启动 UDP 指令服务器
+    cmd_server = CommandServer(host="127.0.0.1", port=9000)
+    cmd_server.start()
+
     while True:
         i = i + 1
 
@@ -35,6 +40,9 @@ def main():
             GBC486.sensor_read_data()
 
         if i % t2 == 0:
+            # 应用 UDP 指令到控制器目标
+            apply_to_controller(cmd_server.snapshot(), ctrl)
+
             # 构造 IMU 数据
             imu = IMUData(
                 r=GBC486.euler[0], p=GBC486.euler[1], y=GBC486.euler[2],
