@@ -247,9 +247,9 @@ class MPCBalanceController:
                 self.Tp_l = -Tp
 
         # --- yaw PID 差分 ---
-        # yaw_correction = self.pid_yaw.calc(self.state.body.y, self.yaw_target)
-        # wheel_torque[0] += yaw_correction
-        # wheel_torque[1] -= yaw_correction
+        yaw_correction = self.pid_yaw.calc(self.state.body.y, self.yaw_target)
+        wheel_torque[0] += yaw_correction
+        wheel_torque[1] -= yaw_correction
 
         # --- 腿长 PID + 重力前馈 ---
         ff_r = StateEstimator.gravity_feedforward(self.state.leg[0].Theta)
