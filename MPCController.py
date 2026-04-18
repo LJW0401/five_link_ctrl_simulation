@@ -219,20 +219,20 @@ class MPCBalanceController:
             x0 = np.array([
                 leg.Theta,
                 leg.dTheta,
-                body_x - self.x_target,
-                body_vx - self.v_target,
+                (body_x - self.x_target),
+                (body_vx - self.v_target),
                 -phi,
                 -phi_dot,
             ])
             
-            x0 = np.array([
-                leg.Theta,
-                leg.dTheta,
-                0,
-                0,
-                -phi,
-                -phi_dot,
-            ])
+            # x0 = np.array([
+            #     leg.Theta,
+            #     leg.dTheta,
+            #     0,
+            #     0,
+            #     -phi,
+            #     -phi_dot,
+            # ])
             
             u0 = self._solve_leg(i, x0)
             T, Tp = float(u0[0]), float(u0[1])

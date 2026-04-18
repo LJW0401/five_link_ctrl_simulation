@@ -158,15 +158,15 @@ class StateEstimator:
         self._update_leg(0, self.vmc_r, self.body.phi, dt)  # 右腿
         self._update_leg(1, self.vmc_l, self.body.phi, dt)  # 左腿
 
-        # print("状态估计: ")
-        # print(f"         机体 phi={self.body.phi:.3f} rad, phi_dot={self.body.phi_dot:.3f} rad/s, x={self.body.x:.3f} m, x_dot={self.body.x_dot:.3f} m/s")
-        # print(f"         机体 roll={imu.r:.3f} rad, pitch={imu.p:.3f} rad, yaw={imu.y:.3f} rad")
-        # print("")
-        # print(f"         右腿 L0={self.leg[0].L0:.3f} m, phi0={self.leg[0].Phi0:.3f} rad, theta={self.leg[0].Theta:.3f} rad")
-        # print(f"         右腿 dL0={self.leg[0].dL0:.3f} m/s, dPhi0={self.leg[0].dPhi0:.3f} rad/s, dTheta={self.leg[0].dTheta:.3f} rad/s")
-        # print("")
-        # print(f"         左腿 L0={self.leg[1].L0:.3f} m, phi0={self.leg[1].Phi0:.3f} rad, theta={self.leg[1].Theta:.3f} rad")
-        # print(f"         左腿 dL0={self.leg[1].dL0:.3f} m/s, dPhi0={self.leg[1].dPhi0:.3f} rad/s, dTheta={self.leg[1].dTheta:.3f} rad/s")
+        print("状态估计: ")
+        print(f"         机体 phi={self.body.phi:.3f} rad, phi_dot={self.body.phi_dot:.3f} rad/s, x={self.body.x:.3f} m, x_dot={self.body.x_dot:.3f} m/s")
+        print(f"         机体 roll={imu.r:.3f} rad, pitch={imu.p:.3f} rad, yaw={imu.y:.3f} rad")
+        print("")
+        print(f"         右腿 L0={self.leg[0].L0:.3f} m, phi0={self.leg[0].Phi0:.3f} rad, theta={self.leg[0].Theta:.3f} rad")
+        print(f"         右腿 dL0={self.leg[0].dL0:.3f} m/s, dPhi0={self.leg[0].dPhi0:.3f} rad/s, dTheta={self.leg[0].dTheta:.3f} rad/s")
+        print("")
+        print(f"         左腿 L0={self.leg[1].L0:.3f} m, phi0={self.leg[1].Phi0:.3f} rad, theta={self.leg[1].Theta:.3f} rad")
+        print(f"         左腿 dL0={self.leg[1].dL0:.3f} m/s, dPhi0={self.leg[1].dPhi0:.3f} rad/s, dTheta={self.leg[1].dTheta:.3f} rad/s")
 
     def _update_leg(self, idx, vmc, body_phi, dt):
         """更新单条腿的状态"""
