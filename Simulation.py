@@ -19,7 +19,7 @@ def main():
     keyboard = KeyboardController()
 
     # 选择控制器: CTRL_LQR 或 CTRL_PID
-    ctrl = create_controller(CTRL_LQR)
+    ctrl = create_controller(CTRL_PID)
     # 监控用状态估计器（复用控制器的五连杆参数）
     leg_params = getattr(ctrl, 'leg_params', None)
     state = StateEstimator(leg_params)

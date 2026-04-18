@@ -8,27 +8,27 @@ from VMC import leg_VMC
 
 
 class JOINT_PID:
-    KP = 80.0
+    KP = 100.0
     KI = 1.0
-    KD = 240.0
+    KD = 300.0
     INTEGRAL_LIMIT = 5.0
     OUTPUT_LIMIT = 20.0
 
 class PITCH_PID:
     """内环：pitch → 轮子力矩"""
-    KP = 25.0
+    KP = 12.0
     KI = 0.2
-    KD = 100.0
+    KD = 80.0
     INTEGRAL_LIMIT = 1.0
     OUTPUT_LIMIT = 4.0
 
 class POS_PID:
-    """外环：位移/速度 → pitch 目标"""
+    """外环：位移 → pitch 目标"""
     KP_X = 1.0
-    KI_X = 0.0
-    KP_V = 6.0
-    INTEGRAL_LIMIT = 0.1
-    OUTPUT_LIMIT = 0.4
+    KI_X = 0.1
+    KP_V = 5.0
+    INTEGRAL_LIMIT = 0.2
+    OUTPUT_LIMIT = 0.3
 
 
 class PIDBalanceController:
@@ -53,7 +53,7 @@ class PIDBalanceController:
         self.pid_pitch = PID(p=PITCH_PID.KP, i=PITCH_PID.KI, d=PITCH_PID.KD,
                              integral_limit=PITCH_PID.INTEGRAL_LIMIT, output_limit=PITCH_PID.OUTPUT_LIMIT)
 
-        self.pid_x = PID(p=POS_PID.KP_X, i=POS_PID.KI_X, d=0.0,
+        self.pid_x = PID(p=POS_PID.KP_X, i=POS_PID.KI_X, d=POS_PID.KP_V,
                          integral_limit=POS_PID.INTEGRAL_LIMIT, output_limit=POS_PID.OUTPUT_LIMIT)
 
         self.joint_targets = [0.0, 0.0, 0.0, 0.0]
@@ -70,7 +70,7 @@ class PIDBalanceController:
                     顺序: [右前关节, 右后关节, 左前关节, 左后关节, 右轮, 左轮]
         返回:
             joint_torque: [右前, 右后, 左前, 左后]
-            wheel_torque: 左右相同
+            wheel_torque: [右轮, 左轮]
         """
         joint_pos = [motors[j].pos for j in range(4)]
         pitch = imu.p
@@ -89,8 +89,8 @@ class PIDBalanceController:
         phi0_r = math.pi / 2.0
         phi0_l = math.pi / 2.0
 
-        ik_r = self.vmc.vmc_inverse_kinematics(self.L0_target, phi0_r)
-        ik_l = self.vmc.vmc_inverse_kinematics(self.L0_target, phi0_l)
+        ik_r = self.vmc.calc_inverse_kinematics(self.L0_target, phi0_r)
+        ik_l = self.vmc.calc_inverse_kinematics(self.L0_target, phi0_l)
 
         if ik_r is not None:
             phi1_r, phi4_r = ik_r
@@ -111,10 +111,12 @@ class PIDBalanceController:
             joint_torque[i] = self.pid_joint[i].calc(joint_pos[i], self.joint_targets[i])
 
         t_x = self.pid_x.calc(body_x, 0.0)
-        t_v = POS_PID.KP_V * (0.0 - body_vx)
-        self.pitch_ref = max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x + t_v))
+        self.pitch_ref = -max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x))
+
+        print(f"pitch={pitch:.3f} rad, pitch_ref={self.pitch_ref:.3f} rad | body_x={body_x:.3f} m, body_vx={body_vx:.3f} m/s")
 
         t_pitch = -self.pid_pitch.calc(pitch, self.pitch_ref)
-        wheel_torque = max(-4.0, min(4.0, t_pitch))
+        t_wheel = max(-4.0, min(4.0, t_pitch))
+        wheel_torque = [t_wheel, t_wheel]
 
         return joint_torque, wheel_torque

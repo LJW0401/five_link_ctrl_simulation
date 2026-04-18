@@ -94,23 +94,27 @@ class leg_VMC:
             (phi1, phi4): 两个驱动关节角度 (rad)
             如果无解返回 None
         """
-        L5_2_pow = (self.l5 / 2.0)**2
-        Lca2 = L0**2 + L5_2_pow + L0 * self.l5 * math.cos(phi0)
-        Lce2 = L0**2 + L5_2_pow - L0 * self.l5 * math.cos(phi0)
+        # 末端 C 坐标（以 A 为原点，M=(l5/2,0) 为虚拟腿极点）
+        Cx = self.l5 / 2.0 + L0 * math.cos(phi0)
+        Cy = L0 * math.sin(phi0)
 
-        cos_phi11 = (L5_2_pow + Lca2 - L0**2) / (self.l5 * math.sqrt(Lca2))
-        cos_phi12 = (self.l1**2 + Lca2 - self.l2**2) / (2 * self.l1 * math.sqrt(Lca2))
-        cos_phi41 = (L5_2_pow + Lce2 - L0**2) / (self.l5 * math.sqrt(Lce2))
-        cos_phi42 = (self.l4**2 + Lce2 - self.l3**2) / (2 * self.l4 * math.sqrt(Lce2))
+        # 左三角形 A(0,0)-B-C：AB=l1, BC=l2
+        Lca2 = Cx * Cx + Cy * Cy
+        Lca = math.sqrt(Lca2)
+        cos_b1 = (self.l1 * self.l1 + Lca2 - self.l2 * self.l2) / (2.0 * self.l1 * Lca)
 
-        phi11 = math.acos(cos_phi11)
-        phi12 = math.acos(cos_phi12)
+        # 右三角形 E(l5,0)-D-C：ED=l4, DC=l3
+        ECx = Cx - self.l5
+        Lce2 = ECx * ECx + Cy * Cy
+        Lce = math.sqrt(Lce2)
+        cos_b4 = (self.l4 * self.l4 + Lce2 - self.l3 * self.l3) / (2.0 * self.l4 * Lce)
 
-        phi41 = math.acos(cos_phi41)
-        phi42 = math.acos(cos_phi42)
+        if abs(cos_b1) > 1.0 or abs(cos_b4) > 1.0:
+            return None
 
-        phi1 = phi11 + phi12
-        phi4 = math.pi - (phi41 + phi42)
+        # B 取 AC 上侧、D 取 EC 下侧（机构装配模式）
+        phi1 = math.atan2(Cy, Cx)  + math.acos(cos_b1)
+        phi4 = math.atan2(Cy, ECx) - math.acos(cos_b4)
 
         return (phi1, phi4)
 
