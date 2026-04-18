@@ -19,7 +19,7 @@ CONFIG_FILE = "lqr_config.json"
 # ========== 默认参数 ==========
 DEFAULT_ROBOT_PARAMS = {
     "R":  0.088,             # 驱动轮半径 (m)
-    "l":  0.0000,            # 机体质心距转轴距离 (m)
+    "l":  0.03,            # 机体质心距转轴距离 (m)
     "mw": 0.322,             # 单个驱动轮质量 (kg)
     "mp": 2.751,             # 单腿质量 (kg)（不含轮子）
     "M":  8.4,               # 机体质量 (kg)
@@ -40,7 +40,7 @@ DEFAULT_Q = [50.0,   1.0,     700.0, 100.0, 7000.0, 1.0]
 #           [T (wheel), Tp (hip)]
 DEFAULT_R = [12.0, 1.0]
 
-DEFAULT_L0_RANGE = {"min": 0.10, "max": 0.40, "n_points": 50}
+DEFAULT_L0_RANGE = {"min": 0.10, "max": 0.40, "n_points": 30}
 
 
 def dynamics(state, ctrl, leg_length, params):
