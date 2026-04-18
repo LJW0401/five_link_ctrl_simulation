@@ -27,9 +27,9 @@ from MPCController import build_condensed
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "mpc_config.json")
 
 # 状态代价   [theta, d_theta, x,    d_x,  phi,    d_phi]
-DEFAULT_Q = [50.0, 1.0,      30.0, 30.0, 5000.0, 1.0]
+DEFAULT_Q = [50.0, 1.0,      200.0, 50.0, 5000.0, 1.0]
 # 输入代价 [T (wheel), Tp (hip)]
-DEFAULT_R = [12.0, 1.0]
+DEFAULT_R = [50.0, 1.0]
 
 DEFAULT_DT = 0.02   # MPC 离散步长 (s)
 DEFAULT_N = 15      # 预测 horizon 步数
