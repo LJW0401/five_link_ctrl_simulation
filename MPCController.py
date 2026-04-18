@@ -230,17 +230,16 @@ class MPCBalanceController:
                 leg.dTheta,
                 0,
                 0,
-                0,
-                0,
+                -phi,
+                -phi_dot,
             ])
             
             u0 = self._solve_leg(i, x0)
             T, Tp = float(u0[0]), float(u0[1])
 
-            # 符号与 LQR 保持一致：wheel_torque = -T
-            wheel_torque[i] = -max(-self.u_max_step[0],
+            wheel_torque[i] = max(-self.u_max_step[0],
                                    min(self.u_max_step[0], T))
-            wheel_torque[i] = 0
+            # wheel_torque[i] = 0
             
             if i == 0:
                 self.Tp_r = -Tp
