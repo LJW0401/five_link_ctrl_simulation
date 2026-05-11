@@ -1,0 +1,155 @@
+<!--
+  菱形对称 5 连杆几何替身版机器人模型（GBC486_rhombus）。
+
+  目标：把原 MJCF_primitive 中"两个 hip 关节在车身上沿 y 方向错开 16 mm、
+  上下杆交叉折叠"的布局，改成"两个 hip 关节几乎重合、四根连杆围成对称菱形、
+  foot/wheel 位于菱形下顶点"的干净结构（对应用户草图右侧的目标形态）。
+
+  连杆拓扑（每条腿，平面 5 连杆机构，2 主动 DOF）：
+      base ── A_rear  ── G ── F (wheel)
+      base ── A_front ── B ── F           (闭环由 equality 锁定 BE 末端 ↔ GH 末端)
+
+  保留的 body/joint/site/actuator/sensor 命名（Python 侧仍可识别）：
+      右腿：AG(jAG), GH(jGH), wheel_right(jwheel_right),
+            AB(jAB), BE(jBE)
+      左腿：IO(jIO), OP(jOP), wheel_left(jwheel_left),
+            IJ(jIJ), JM(jJM)
+      原始模型中冗余的 EC/CF/MK/KN 在新拓扑下不再需要，已删除
+      （Python 代码仅引用 jAG/jGH/jIO/jOP 与传感器/执行器名，已核实不会破坏）。
+
+  几何参数（base 局部坐标系，base 本体初始位姿 pos="0 0 0.25"）：
+      hip 间距（前/后铰链沿车体 x 方向）：0.04 m
+      L1 (upper) = L2 (lower) = 0.15 m
+      默认零位 knee 落在 hip 正下方 0.10 m，foot 在 hip 正下方 0.0716 m + knee 高
+  关键依赖：environment.py 通过 sensor 名读取关节角；equality 的 connect 完成闭环。
+-->
+<mujoco model="GBC486_rhombus">
+  <default>
+    <default class="touch">
+        <geom contype="1" conaffinity="1" />
+    </default>
+    <default class="untouch">
+        <geom contype="0" conaffinity="0" />
+    </default>
+  </default>
+  <compiler angle="radian"/>
+
+  <asset>
+    <material name="base_mat" rgba="0.2 0.2 0.25 1" specular="0.5" shininess="0.5"/>
+    <material name="arm_blue" rgba="0.3 0.5 0.8 1" specular="0.8" shininess="0.8"/>
+    <material name="arm_red"  rgba="0.8 0.3 0.3 1" specular="0.8" shininess="0.8"/>
+    <material name="joint_mat" rgba="0.7 0.7 0.75 1" specular="1.0" shininess="1.0"/>
+    <material name="wheel_mat" rgba="0.15 0.15 0.2 1" specular="0.3" shininess="0.2"/>
+  </asset>
+
+  <worldbody>
+    <body name="base" pos="0 0 0.25">
+      <joint name="base_free" type="free"/>
+      <site name="imu" type="box" size="0.002 0.002 0.002" rgba="1 1 0 1"/>
+      <geom name="base_box" type="box" size="0.12 0.18 0.05" pos="0 0 0.05"
+            material="base_mat" class="touch" mass="8.4"/>
+
+      <!-- ============ 右腿（蓝色系），rear: AG → GH → wheel_right ============ -->
+      <body name="AG" pos="-0.02 -0.20 0.10" quat="0.707105 0.707108 0 0">
+        <joint name="jAG" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
+        <!-- upper-rear 杆：从 hip 沿 (−0.1118, −0.10, 0) 指向 knee G，长 0.15 -->
+        <geom type="cylinder" fromto="0 0 0  -0.1118 -0.10 0" size="0.012"
+              material="arm_blue" class="untouch" mass="0.5"/>
+
+        <body name="GH" pos="-0.1118 -0.10 0">
+          <joint name="jGH" pos="0 0 0" axis="0 0 1" range="-2.5 2.5"/>
+          <!-- lower-rear 杆：从 knee 沿 (0.1318, −0.0716, 0) 指向 foot F，长 0.15 -->
+          <geom type="cylinder" fromto="0 0 0  0.1318 -0.0716 0" size="0.014"
+                material="joint_mat" class="touch" mass="1.0"/>
+          <site name="GH-F" pos="0.1318 -0.0716 0" size="0.004" rgba="0 1 0 1"/>
+
+          <body name="wheel_right" pos="0.1318 -0.0716 0">
+            <joint name="jwheel_right" pos="0 0 0" axis="0 0 -1"/>
+            <geom type="cylinder" size="0.088 0.018" material="arm_blue"
+                  class="touch" mass="0.322"/>
+            <geom type="box" size="0.005 0.06 0.019" pos="0 0 0"
+                  rgba="1 0.85 0 1" class="untouch" mass="0.001"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- ============ 右腿（蓝色系），front: AB → BE → F (闭环到 GH-F) ============ -->
+      <body name="AB" pos="0.02 -0.20 0.10" quat="0.707105 0.707108 0 0">
+        <joint name="jAB" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
+        <!-- upper-front 杆：从 hip 沿 (0.1118, −0.10, 0) 指向 knee B，长 0.15 -->
+        <geom type="cylinder" fromto="0 0 0  0.1118 -0.10 0" size="0.012"
+              material="arm_blue" class="untouch" mass="0.5"/>
+
+        <body name="BE" pos="0.1118 -0.10 0">
+          <joint name="jBE" pos="0 0 0" axis="0 0 1"/>
+          <!-- lower-front 杆：从 knee 沿 (−0.1318, −0.0716, 0) 指向 foot F，长 0.15 -->
+          <geom type="cylinder" fromto="0 0 0  -0.1318 -0.0716 0" size="0.014"
+                material="joint_mat" class="touch" mass="1.0"/>
+          <site name="BE-F" pos="-0.1318 -0.0716 0" size="0.004" rgba="0 1 0 1"/>
+        </body>
+      </body>
+
+      <!-- ============ 左腿（红色系），rear: IO → OP → wheel_left ============ -->
+      <body name="IO" pos="-0.02 0.20 0.10" quat="0.707105 0.707108 0 0">
+        <joint name="jIO" pos="0 0 0" axis="0 0 -1" range="-1.57 1.57"/>
+        <geom type="cylinder" fromto="0 0 0  -0.1118 -0.10 0" size="0.012"
+              material="arm_red" class="untouch" mass="0.5"/>
+
+        <body name="OP" pos="-0.1118 -0.10 0">
+          <joint name="jOP" pos="0 0 0" axis="0 0 -1" range="-2.5 2.5"/>
+          <geom type="cylinder" fromto="0 0 0  0.1318 -0.0716 0" size="0.014"
+                material="joint_mat" class="touch" mass="1.0"/>
+          <site name="OP-F" pos="0.1318 -0.0716 0" size="0.004" rgba="1 0 0 1"/>
+
+          <body name="wheel_left" pos="0.1318 -0.0716 0">
+            <joint name="jwheel_left" pos="0 0 0" axis="0 0 1"/>
+            <geom type="cylinder" size="0.088 0.018" material="arm_red"
+                  class="touch" mass="0.322"/>
+            <geom type="box" size="0.005 0.06 0.019" pos="0 0 0"
+                  rgba="1 0.85 0 1" class="untouch" mass="0.001"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- ============ 左腿（红色系），front: IJ → JM → F (闭环到 OP-F) ============ -->
+      <body name="IJ" pos="0.02 0.20 0.10" quat="0.707105 0.707108 0 0">
+        <joint name="jIJ" pos="0 0 0" axis="0 0 -1" range="-1.57 1.57"/>
+        <geom type="cylinder" fromto="0 0 0  0.1118 -0.10 0" size="0.012"
+              material="arm_red" class="untouch" mass="0.5"/>
+
+        <body name="JM" pos="0.1118 -0.10 0">
+          <joint name="jJM" pos="0 0 0" axis="0 0 -1"/>
+          <geom type="cylinder" fromto="0 0 0  -0.1318 -0.0716 0" size="0.014"
+                material="joint_mat" class="touch" mass="1.0"/>
+          <site name="JM-F" pos="-0.1318 -0.0716 0" size="0.004" rgba="1 0 0 1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <equality>
+    <!-- 闭环：上下两条支链在 foot/wheel 位置合拢 -->
+    <connect name="right_F" site1="BE-F" site2="GH-F" solref="0.001 1" solimp="0.99 0.99 0.01 0.5 2"/>
+    <connect name="left_F"  site1="JM-F" site2="OP-F" solref="0.001 1" solimp="0.99 0.99 0.01 0.5 2"/>
+  </equality>
+
+  <actuator>
+    <general name="Right_front_joint_act" joint="jAB"          gainprm="1"  ctrlrange="-20 +20"/>
+    <general name="Right_rear_joint_act"  joint="jAG"          gainprm="1"  ctrlrange="-20 +20"/>
+    <general name="Left_front_joint_act"  joint="jIJ"          gainprm="1"  ctrlrange="-20 +20"/>
+    <general name="Left_rear_joint_act"   joint="jIO"          gainprm="1"  ctrlrange="-20 +20"/>
+    <general name="Right_Wheel_act"       joint="jwheel_right" gainprm="1"  ctrlrange="-4 +4"/>
+    <general name="Left_Wheel_act"        joint="jwheel_left"  gainprm="-1" ctrlrange="-4 +4"/>
+  </actuator>
+
+  <sensor>
+    <framequat name='orientation' objtype='site' objname='imu'/>
+    <gyro      name='gyro'        site='imu'/>
+    <jointpos joint="jwheel_right" name="Right_Wheel_pos"/>
+    <jointpos joint="jwheel_left"  name="Left_Wheel_pos"/>
+    <jointpos joint="jAB" name="Right_front_joint_pos"/>
+    <jointpos joint="jAG" name="Right_rear_joint_pos"/>
+    <jointpos joint="jIJ" name="Left_front_joint_pos"/>
+    <jointpos joint="jIO" name="Left_rear_joint_pos"/>
+  </sensor>
+</mujoco>
