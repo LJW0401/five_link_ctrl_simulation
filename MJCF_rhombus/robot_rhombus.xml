@@ -19,8 +19,8 @@
 
   几何参数（base 局部坐标系，base 本体初始位姿 pos="0 0 0.30"）：
       hip 间距（前/后铰链沿车体 x 方向）：L5 = 0.10 m（A_rear x=-0.05, A_front x=+0.05）
-      上连杆 L1 = L4 = 0.18 m，下连杆 L2 = L3 = 0.24 m
-      默认零位 hip→foot 竖直距离 L0 = 0.30 m，knee 在 (±0.172, ±0.20, hip_z-0.1325)，
+      上连杆 L1 = L4 = 0.15 m，下连杆 L2 = L3 = 0.24 m
+      默认零位 hip→foot 竖直距离 L0 = 0.30 m，knee 在 (±0.1495, ±0.20, hip_z-0.11225)，
       foot 在 (0, ±0.20, hip_z-0.30)
   关键依赖：environment.py 通过 sensor 名读取关节角；equality 的 connect 完成闭环。
 -->
@@ -46,7 +46,7 @@
   <worldbody>
     <body name="base" pos="0 0 0.30">
     <!-- "扣雷挖及悠打"，注释下面这行代码可以让车身悬浮在空中 -->
-      <!-- <joint name="base_free" type="free"/> -->
+      <joint name="base_free" type="free"/>
       <site name="imu" type="box" size="0.002 0.002 0.002" rgba="1 1 0 1"/>
       <geom name="base_box" type="box" size="0.12 0.18 0.05" pos="0 0 0.05"
             material="base_mat" class="touch" mass="8.4"/>
@@ -54,18 +54,18 @@
       <!-- ============ 右腿（蓝色系），rear: AG → GH → wheel_right ============ -->
       <body name="AG" pos="-0.05 -0.20 0.10" quat="0.707105 0.707108 0 0">
         <joint name="jAG" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
-        <!-- upper-rear 杆：从 hip 沿 (−0.122, −0.1325, 0) 指向 knee G，长 0.18 -->
-        <geom type="cylinder" fromto="0 0 0  -0.122 -0.1325 0" size="0.012"
+        <!-- upper-rear 杆：从 hip 沿 (−0.0995, −0.11225, 0) 指向 knee G，长 0.15 -->
+        <geom type="cylinder" fromto="0 0 0  -0.0995 -0.11225 0" size="0.012"
               material="arm_blue" class="untouch" mass="0.5"/>
 
-        <body name="GH" pos="-0.122 -0.1325 0">
+        <body name="GH" pos="-0.0995 -0.11225 0">
           <joint name="jGH" pos="0 0 0" axis="0 0 1" range="-2.5 2.5"/>
-          <!-- lower-rear 杆：从 knee 沿 (0.172, −0.1675, 0) 指向 foot F，长 0.24 -->
-          <geom type="cylinder" fromto="0 0 0  0.172 -0.1675 0" size="0.014"
+          <!-- lower-rear 杆：从 knee 沿 (0.1495, −0.18775, 0) 指向 foot F，长 0.24 -->
+          <geom type="cylinder" fromto="0 0 0  0.1495 -0.18775 0" size="0.014"
                 material="joint_mat" class="touch" mass="1.0"/>
-          <site name="GH-F" pos="0.172 -0.1675 0" size="0.004" rgba="0 1 0 1"/>
+          <site name="GH-F" pos="0.1495 -0.18775 0" size="0.004" rgba="0 1 0 1"/>
 
-          <body name="wheel_right" pos="0.172 -0.1675 0">
+          <body name="wheel_right" pos="0.1495 -0.18775 0">
             <joint name="jwheel_right" pos="0 0 0" axis="0 0 -1"/>
             <geom type="cylinder" size="0.088 0.018" material="arm_blue"
                   class="touch" mass="0.322"/>
@@ -78,32 +78,32 @@
       <!-- ============ 右腿（蓝色系），front: AB → BE → F (闭环到 GH-F) ============ -->
       <body name="AB" pos="0.05 -0.20 0.10" quat="0.707105 0.707108 0 0">
         <joint name="jAB" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
-        <!-- upper-front 杆：从 hip 沿 (0.122, −0.1325, 0) 指向 knee B，长 0.18 -->
-        <geom type="cylinder" fromto="0 0 0  0.122 -0.1325 0" size="0.012"
+        <!-- upper-front 杆：从 hip 沿 (0.0995, −0.11225, 0) 指向 knee B，长 0.15 -->
+        <geom type="cylinder" fromto="0 0 0  0.0995 -0.11225 0" size="0.012"
               material="arm_blue" class="untouch" mass="0.5"/>
 
-        <body name="BE" pos="0.122 -0.1325 0">
+        <body name="BE" pos="0.0995 -0.11225 0">
           <joint name="jBE" pos="0 0 0" axis="0 0 1"/>
-          <!-- lower-front 杆：从 knee 沿 (−0.172, −0.1675, 0) 指向 foot F，长 0.24 -->
-          <geom type="cylinder" fromto="0 0 0  -0.172 -0.1675 0" size="0.014"
+          <!-- lower-front 杆：从 knee 沿 (−0.1495, −0.18775, 0) 指向 foot F，长 0.24 -->
+          <geom type="cylinder" fromto="0 0 0  -0.1495 -0.18775 0" size="0.014"
                 material="joint_mat" class="touch" mass="1.0"/>
-          <site name="BE-F" pos="-0.172 -0.1675 0" size="0.004" rgba="0 1 0 1"/>
+          <site name="BE-F" pos="-0.1495 -0.18775 0" size="0.004" rgba="0 1 0 1"/>
         </body>
       </body>
 
       <!-- ============ 左腿（红色系），rear: IO → OP → wheel_left ============ -->
       <body name="IO" pos="-0.05 0.20 0.10" quat="0.707105 0.707108 0 0">
         <joint name="jIO" pos="0 0 0" axis="0 0 -1" range="-1.57 1.57"/>
-        <geom type="cylinder" fromto="0 0 0  -0.122 -0.1325 0" size="0.012"
+        <geom type="cylinder" fromto="0 0 0  -0.0995 -0.11225 0" size="0.012"
               material="arm_red" class="untouch" mass="0.5"/>
 
-        <body name="OP" pos="-0.122 -0.1325 0">
+        <body name="OP" pos="-0.0995 -0.11225 0">
           <joint name="jOP" pos="0 0 0" axis="0 0 -1" range="-2.5 2.5"/>
-          <geom type="cylinder" fromto="0 0 0  0.172 -0.1675 0" size="0.014"
+          <geom type="cylinder" fromto="0 0 0  0.1495 -0.18775 0" size="0.014"
                 material="joint_mat" class="touch" mass="1.0"/>
-          <site name="OP-F" pos="0.172 -0.1675 0" size="0.004" rgba="1 0 0 1"/>
+          <site name="OP-F" pos="0.1495 -0.18775 0" size="0.004" rgba="1 0 0 1"/>
 
-          <body name="wheel_left" pos="0.172 -0.1675 0">
+          <body name="wheel_left" pos="0.1495 -0.18775 0">
             <joint name="jwheel_left" pos="0 0 0" axis="0 0 1"/>
             <geom type="cylinder" size="0.088 0.018" material="arm_red"
                   class="touch" mass="0.322"/>
@@ -116,14 +116,14 @@
       <!-- ============ 左腿（红色系），front: IJ → JM → F (闭环到 OP-F) ============ -->
       <body name="IJ" pos="0.05 0.20 0.10" quat="0.707105 0.707108 0 0">
         <joint name="jIJ" pos="0 0 0" axis="0 0 -1" range="-1.57 1.57"/>
-        <geom type="cylinder" fromto="0 0 0  0.122 -0.1325 0" size="0.012"
+        <geom type="cylinder" fromto="0 0 0  0.0995 -0.11225 0" size="0.012"
               material="arm_red" class="untouch" mass="0.5"/>
 
-        <body name="JM" pos="0.122 -0.1325 0">
+        <body name="JM" pos="0.0995 -0.11225 0">
           <joint name="jJM" pos="0 0 0" axis="0 0 -1"/>
-          <geom type="cylinder" fromto="0 0 0  -0.172 -0.1675 0" size="0.014"
+          <geom type="cylinder" fromto="0 0 0  -0.1495 -0.18775 0" size="0.014"
                 material="joint_mat" class="touch" mass="1.0"/>
-          <site name="JM-F" pos="-0.172 -0.1675 0" size="0.004" rgba="1 0 0 1"/>
+          <site name="JM-F" pos="-0.1495 -0.18775 0" size="0.004" rgba="1 0 0 1"/>
         </body>
       </body>
     </body>

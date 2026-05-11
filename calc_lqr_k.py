@@ -19,12 +19,12 @@ CONFIG_FILE = "lqr_config.json"
 # ========== 默认参数 ==========
 # 与 MJCF_rhombus/robot_rhombus.xml 对应：
 #   - 单腿 4 根连杆质量 = 0.5(AG) + 1.0(GH) + 0.5(AB) + 1.0(BE) = 3.0 kg
-#   - 上连杆 L1=L4=0.18 m，下连杆 L2=L3=0.24 m，hip 间距 L5=0.10 m
+#   - 上连杆 L1=L4=0.15 m，下连杆 L2=L3=0.24 m，hip 间距 L5=0.10 m
 #   - base box 0.24×0.36×0.10 m, 质量 8.4 kg, COM 相对 hip 轴线沿 z 偏移 ≈ 0.05 m
 #   - 关于 pitch (body y) 的转动惯量：I = M/12*(Lx²+Lz²) = 8.4/12*(0.24²+0.10²) ≈ 0.0473
 DEFAULT_ROBOT_PARAMS = {
     "R":  0.088,             # 驱动轮半径 (m)
-    "l":  0,              # 机体质心距 hip 转轴距离 (m)，对应 base_box 的 z 偏移
+    "l": -0.05,              # 机体质心距 hip 转轴距离 (m)，对应 base_box 的 z 偏移
     "mw": 0.322,             # 单个驱动轮质量 (kg)
     "mp": 3.0,               # 单腿质量 (kg)（含 AG/GH/AB/BE 四根连杆，不含轮子）
     "M":  8.4,               # 机体质量 (kg)
@@ -33,21 +33,21 @@ DEFAULT_ROBOT_PARAMS = {
 }
 
 DEFAULT_LEG_PARAMS = {
-    "l1": 0.18,              # 上连杆（rear, AG） (m)
+    "l1": 0.15,              # 上连杆（rear, AG） (m)
     "l2": 0.24,              # 下连杆（rear, GH） (m)
     "l3": 0.24,              # 下连杆（front, BE） (m)
-    "l4": 0.18,              # 上连杆（front, AB） (m)
+    "l4": 0.15,              # 上连杆（front, AB） (m)
     "l5": 0.10,              # A_rear ↔ A_front 沿 base x 的 hip 间距 (m)
 }
 
 #           [theta, d_theta, x,      d_x,   phi,    d_phi]
-DEFAULT_Q = [50.0,   1.0,    1.0, 1.0, 1.0, 1.0]
+DEFAULT_Q = [50.0,   1.0,    100.0, 100.0, 2000.0, 10.0]
 #           [T (wheel), Tp (hip)]
-DEFAULT_R = [10.0, 1.0]
+DEFAULT_R = [20.0, 1.0]
 
-# 菱形 5 连杆腿长可行域：L1+L2=0.42 是几何上限，留余量；
+# 菱形 5 连杆腿长可行域：L1+L2=0.39 是几何上限，留余量；
 # 下限避免接近完全折叠时的奇异。
-DEFAULT_L0_RANGE = {"min": 0.12, "max": 0.38, "n_points": 30}
+DEFAULT_L0_RANGE = {"min": 0.12, "max": 0.36, "n_points": 30}
 
 
 def dynamics(state, ctrl, leg_length, params):
