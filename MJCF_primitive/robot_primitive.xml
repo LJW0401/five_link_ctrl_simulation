@@ -55,6 +55,9 @@
             <!-- 轮：cylinder 沿 body 局部 z 轴；与 jwheel_right 轴向一致 -->
             <geom type="cylinder" size="0.088 0.018" material="arm_blue"
                   class="touch" mass="0.322"/>
+            <!-- 观察标记：在轮缘贴一段亮色短杆，转动时可视化角速度 -->
+            <geom type="box" size="0.005 0.06 0.019" pos="0 0 0"
+                  rgba="1 0.85 0 1" class="untouch" mass="0.001"/>
           </body>
         </body>
       </body>
@@ -130,6 +133,9 @@
             <joint name="jwheel_left" pos="0 0 0" axis="0 0 1"/>
             <geom type="cylinder" size="0.088 0.018" material="arm_red"
                   class="touch" mass="0.322"/>
+            <!-- 观察标记：与右轮对称的亮色短杆 -->
+            <geom type="box" size="0.005 0.06 0.019" pos="0 0 0"
+                  rgba="1 0.85 0 1" class="untouch" mass="0.001"/>
           </body>
         </body>
       </body>
