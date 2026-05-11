@@ -86,7 +86,7 @@ class LQRBalanceController:
         # 目标值
         # MJCF_rhombus 默认零位 L0 = 0.30 m，控制器以同样的腿长作为平衡目标，
         # 避免上电瞬间 PID 命令大幅压腿、把 5-bar 拖出工作空间。
-        self.L0_target = 0.30
+        self.L0_target = 0.20
         self.x_target = 0.0
         self.v_target = 0.0
         self.yaw_target = 0.0
@@ -152,16 +152,16 @@ class LQRBalanceController:
 
             # phi = -pitch，因此 -phi = pitch；误差 = pitch - pitch_target
             x = [
-                -leg.Theta,
-                -leg.dTheta,
-                0,
-                0,
-                0,
-                0,
+                leg.Theta,
+                leg.dTheta,
+                (body_x - self.x_target),
+                (body_vx - self.v_target),
+                -phi - self.pitch_target,
+                -phi_dot,
             ]
 
             T, Tp = calc_lqr(k, x)
-            wheel_torque[i] = 0#-max(-4.0, min(4.0, T))
+            wheel_torque[i] = -max(-4.0, min(4.0, T))
 
             if i == 0:
                 self.Tp_r = Tp
@@ -169,7 +169,7 @@ class LQRBalanceController:
                 self.Tp_l = Tp
 
         # --- yaw PID ---
-        yaw_correction = self.pid_yaw.calc(self.state.body.y, self.yaw_target)
+        yaw_correction = 0#self.pid_yaw.calc(self.state.body.y, self.yaw_target)
         wheel_torque[0] += yaw_correction
         wheel_torque[1] -= yaw_correction
 
