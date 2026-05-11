@@ -37,6 +37,11 @@ def main():
     cmd_server = CommandServer(host="127.0.0.1", port=9000)
     cmd_server.start()
 
+    # realtime 节流：每个 mj_step 推进 model.opt.timestep（默认 1 ms 仿真时间），
+    # 用 perf_counter 精确补偿累计 wall-time 误差，避免单次 sleep 抖动累积
+    step_dt = GBC486.model.opt.timestep
+    loop_start = time.perf_counter()
+
     while True:
         i = i + 1
 
@@ -84,6 +89,13 @@ def main():
             #     f"φ={state.body.phi:+.4f} dφ={state.body.phi_dot:+.3f} | "
             #     f"L0={state.leg[0].L0:.3f} whl={GBC486.wheel_torque[0]:+.2f}"
             # )
+
+        # 节流到 1× realtime：基于"应该到达的总 wall-time"补偿，自然纠偏累计漂移
+        # （如果某帧耗时超 step_dt，下一帧不会 sleep，自动追赶；不会出现累计提前）
+        target_wall = loop_start + i * step_dt
+        remaining = target_wall - time.perf_counter()
+        if remaining > 0:
+            time.sleep(remaining)
 
 
 if __name__ == '__main__':
