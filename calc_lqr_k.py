@@ -33,11 +33,11 @@ DEFAULT_ROBOT_PARAMS = {
 }
 
 DEFAULT_LEG_PARAMS = {
-    "l1": 0.15,              # 上连杆（rear, AG） (m)
-    "l2": 0.15,              # 下连杆（rear, GH） (m)
-    "l3": 0.15,              # 下连杆（front, BE） (m)
-    "l4": 0.15,              # 上连杆（front, AB） (m)
-    "l5": 0.04,              # A_rear ↔ A_front 沿 base x 的 hip 间距 (m)
+    "l1": 0.21,              # 上连杆（rear, AG） (m)
+    "l2": 0.24,              # 下连杆（rear, GH） (m)
+    "l3": 0.24,              # 下连杆（front, BE） (m)
+    "l4": 0.21,              # 上连杆（front, AB） (m)
+    "l5": 0.10,              # A_rear ↔ A_front 沿 base x 的 hip 间距 (m)
 }
 
 #           [theta, d_theta, x,      d_x,   phi,    d_phi]
@@ -45,9 +45,9 @@ DEFAULT_Q = [50.0,   1.0,    500.0, 100.0, 7000.0, 1.0]
 #           [T (wheel), Tp (hip)]
 DEFAULT_R = [100.0, 1.0]
 
-# 菱形 5 连杆腿长可行域：L1+L2=0.30 是几何上限，留 5 cm 余量；
+# 菱形 5 连杆腿长可行域：L1+L2=0.45 是几何上限，留 5 cm 余量；
 # 下限同样留 5 cm 避免接近完全折叠时的奇异。
-DEFAULT_L0_RANGE = {"min": 0.08, "max": 0.28, "n_points": 30}
+DEFAULT_L0_RANGE = {"min": 0.15, "max": 0.40, "n_points": 30}
 
 
 def dynamics(state, ctrl, leg_length, params):
@@ -233,7 +233,7 @@ if __name__ == "__main__":
     save_config(config)
 
     # 验证
-    L0_test = 0.17  # 菱形模型默认零位 hip→foot ≈ 0.172 m
+    L0_test = 0.30  # 菱形模型默认零位 hip→foot = 0.30 m
     K_exact = compute_k(L0_test)
     print(f"\nL0={L0_test}m 精确 K:")
     print(f"  T  = {np.round(K_exact[0], 3)}")
