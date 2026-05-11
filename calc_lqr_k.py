@@ -36,9 +36,9 @@ DEFAULT_LEG_PARAMS = {
 }
 
 #           [theta, d_theta, x,      d_x,   phi,    d_phi] 
-DEFAULT_Q = [50.0,   1.0,    800.0, 100.0, 7000.0, 1.0]
+DEFAULT_Q = [50.0,   1.0,    500.0, 100.0, 7000.0, 1.0]
 #           [T (wheel), Tp (hip)]
-DEFAULT_R = [20.0, 1.0]
+DEFAULT_R = [100.0, 1.0]
 
 DEFAULT_L0_RANGE = {"min": 0.10, "max": 0.40, "n_points": 30}
 
