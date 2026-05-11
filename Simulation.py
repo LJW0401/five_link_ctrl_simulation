@@ -16,11 +16,9 @@ def main():
     parser.add_argument('--model', default='MJCF/env.xml',
                         help='MJCF entry file. e.g. MJCF/env.xml (STL mesh) or '
                              'MJCF_primitive/env.xml (cylinder/box primitives)')
-    parser.add_argument('--realtime', dest='realtime', action='store_true', default=True,
-                        help='节流到 1× realtime（默认开）')
-    parser.add_argument('--fast', dest='realtime', action='store_false',
-                        help='禁用节流，让仿真按 CPU 全速跑（用于跑长仿真/调参/批量验证）')
-    args, _ = parser.parse_known_args()
+    parser.add_argument('--fast', dest='realtime', action='store_false', default=True,
+                        help='禁用 realtime 节流，让仿真按 CPU 全速跑（默认 1× realtime）')
+    args = parser.parse_args()
 
     GBC486 = LegWheelRobot(args.model)
     i = 0
