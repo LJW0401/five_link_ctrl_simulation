@@ -40,14 +40,14 @@
       <body name="AG" pos="-0.01375 -0.1995 0.134" quat="0.707105 0.707108 0 0">
         <joint name="jAG" pos="0 0 0" axis="0 0 1" range="-1.57 0.3"/>
         <site name="AG-D" pos="-0.027 -0.094 0" size="0.002" rgba="0 1 0 1"/>
-        <geom type="cylinder" fromto="0 0 0  -0.060152 -0.20641 0.0345" size="0.012"
+        <geom type="box" fromto="0 0 0  -0.060152 -0.20641 0.0345" size="0.012"
               material="arm_blue" class="untouch" mass="0.667"/>
 
         <body name="GH" pos="-0.060152 -0.20641 0.0345">
           <joint name="jGH" pos="0 0 0" axis="0 0 1" range="-0.85 1"/>
           <site name="GH-F" pos="-0.0604 0.0259 -0.03" size="0.01" rgba="0 1 0 1"/>
           <site name="GH-little_wheel" pos="-0.033 -0.062 -0.01" size="0.01" rgba="0 1 0 1"/>
-          <geom type="cylinder" fromto="0 0 0  0.25495 -0.039583 0.0155" size="0.014"
+          <geom type="box" fromto="0 0 0  0.25495 -0.039583 0.0155" size="0.014"
                 material="joint_mat" class="touch" mass="1.64"/>
 
           <body name="wheel_right" pos="0.25495 -0.039583 0.0155">
@@ -62,24 +62,24 @@
       <!-- ============ 右腿臂（蓝色系，front: AB-BE-EC-CF） ============ -->
       <body name="AB" pos="-0.01375 -0.2155 0.134" quat="0.707105 0.707108 0 0">
         <joint name="jAB" pos="0 0 0" axis="0 0 1" range="-1.57 0.5"/>
-        <geom type="cylinder" fromto="0 0 0  0.097866 0.0051238 -0.013" size="0.010"
+        <geom type="box" fromto="0 0 0  0.097866 0.0051238 -0.013" size="0.010"
               material="joint_mat" class="untouch" mass="0.202"/>
 
         <body name="BE" pos="0.097866 0.0051238 -0.013">
           <joint name="jBE" pos="0 0 0" axis="0 0 1"/>
-          <geom type="cylinder" fromto="0 0 0  -0.0090761 -0.11725 0.0094" size="0.008"
+          <geom type="box" fromto="0 0 0  -0.0090761 -0.11725 0.0094" size="0.008"
                 material="arm_blue" class="touch" mass="0.057"/>
 
           <body name="EC" pos="-0.0090761 -0.11725 0.0094">
             <joint name="jEC" pos="0 0 0" axis="0 0 -1"/>
             <site name="EC-D" pos="-0.115974 0.017382 -0.01" size="0.002" rgba="1 0 0 1"/>
-            <geom type="cylinder" fromto="0 0 0  -0.17658 0.044698 -0.0124" size="0.010"
+            <geom type="box" fromto="0 0 0  -0.17658 0.044698 -0.0124" size="0.010"
                   material="joint_mat" class="touch" mass="0.128"/>
 
             <body name="CF" pos="-0.17658 0.044698 -0.0124">
               <joint name="jCF" pos="0 0 0" axis="0 0 -1"/>
               <site name="CF-F" pos="-0.0332 -0.111 0" size="0.002" rgba="1 0 0 1"/>
-              <geom type="cylinder" fromto="0 0 0  -0.0332 -0.111 0" size="0.008"
+              <geom type="box" fromto="0 0 0  -0.0332 -0.111 0" size="0.008"
                     material="arm_blue" class="touch" mass="0.057"/>
             </body>
           </body>
@@ -89,24 +89,24 @@
       <!-- ============ 左腿（红色系，front: IJ-JM-MK-KN） ============ -->
       <body name="IJ" pos="-0.01375 0.2165 0.134" quat="0.707105 0.707108 0 0">
         <joint name="jIJ" pos="0 0 0" axis="0 0 -1" range="-0.5 1.57"/>
-        <geom type="cylinder" fromto="0 0 0  0.097866 0.0051238 0.013" size="0.010"
+        <geom type="box" fromto="0 0 0  0.097866 0.0051238 0.013" size="0.010"
               material="joint_mat" class="untouch" mass="0.202"/>
 
         <body name="JM" pos="0.097866 0.0051238 0.013">
           <joint name="jJM" pos="0 0 0" axis="0 0 -1"/>
-          <geom type="cylinder" fromto="0 0 0  -0.0090761 -0.11725 -0.0094" size="0.008"
+          <geom type="box" fromto="0 0 0  -0.0090761 -0.11725 -0.0094" size="0.008"
                 material="arm_red" class="touch" mass="0.057"/>
 
           <body name="MK" pos="-0.0090761 -0.11725 -0.0094">
             <joint name="jMK" pos="0 0 0" axis="0 0 -1"/>
             <site name="MK-L" pos="-0.115974 0.017382 0.01" size="0.01" rgba="1 0 0 1"/>
-            <geom type="cylinder" fromto="0 0 0  -0.17658 0.044698 0.0124" size="0.010"
+            <geom type="box" fromto="0 0 0  -0.17658 0.044698 0.0124" size="0.010"
                   material="joint_mat" class="touch" mass="0.128"/>
 
             <body name="KN" pos="-0.17658 0.044698 0.0124">
               <joint name="jKN" pos="0 0 0" axis="0 0 1"/>
               <site name="KN-N" pos="-0.0332 -0.111 0" size="0.01" rgba="1 0 0 1"/>
-              <geom type="cylinder" fromto="0 0 0  -0.0332 -0.111 0" size="0.008"
+              <geom type="box" fromto="0 0 0  -0.0332 -0.111 0" size="0.008"
                     material="arm_red" class="touch" mass="0.057"/>
             </body>
           </body>
@@ -117,13 +117,13 @@
       <body name="IO" pos="-0.01375 0.2005 0.134" quat="0.707105 0.707108 0 0">
         <joint name="jIO" pos="0 0 0" axis="0 0 -1" range="-0.3 1.57"/>
         <site name="IO-L" pos="-0.027 -0.094 0" size="0.01" rgba="0 1 0 1"/>
-        <geom type="cylinder" fromto="0 0 0  -0.060152 -0.20641 -0.0345" size="0.012"
+        <geom type="box" fromto="0 0 0  -0.060152 -0.20641 -0.0345" size="0.012"
               material="arm_red" class="untouch" mass="0.667"/>
 
         <body name="OP" pos="-0.060152 -0.20641 -0.0345">
           <joint name="jOP" pos="0 0 0" axis="0 0 -1" range="-1 0.85"/>
           <site name="OP-N" pos="-0.0604 0.0259 0.03" size="0.01" rgba="0 1 0 1"/>
-          <geom type="cylinder" fromto="0 0 0  0.25495 -0.039576 -0.0155" size="0.014"
+          <geom type="box" fromto="0 0 0  0.25495 -0.039576 -0.0155" size="0.014"
                 material="joint_mat" class="touch" mass="1.64"/>
 
           <body name="wheel_left" pos="0.25495 -0.039576 -0.0155">
