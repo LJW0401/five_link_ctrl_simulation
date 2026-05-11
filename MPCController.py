@@ -154,8 +154,8 @@ class MPCBalanceController:
         print(f"[MPC] N={self.N}, dt={self.dt}s, "
               f"L0 ∈ [{config['L0_range']['min']:.2f}, {config['L0_range']['max']:.2f}] m")
 
-        # 目标值
-        self.L0_target = 0.2
+        # 目标值（MJCF_rhombus 默认零位 L0=0.30 m，对齐避免上电压腿）
+        self.L0_target = 0.30
         self.x_target = 0.0
         self.v_target = 0.0
         self.yaw_target = 0.0

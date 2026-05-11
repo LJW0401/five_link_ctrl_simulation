@@ -84,7 +84,9 @@ class LQRBalanceController:
         print(f"[LQR] 加载K矩阵查找表: {n}点, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
 
         # 目标值
-        self.L0_target = 0.2
+        # MJCF_rhombus 默认零位 L0 = 0.30 m，控制器以同样的腿长作为平衡目标，
+        # 避免上电瞬间 PID 命令大幅压腿、把 5-bar 拖出工作空间。
+        self.L0_target = 0.30
         self.x_target = 0.0
         self.v_target = 0.0
         self.yaw_target = 0.0
@@ -150,16 +152,16 @@ class LQRBalanceController:
 
             # phi = -pitch，因此 -phi = pitch；误差 = pitch - pitch_target
             x = [
-                leg.Theta,
-                leg.dTheta,
-                (body_x - self.x_target),
-                (body_vx - self.v_target),
-                -phi - self.pitch_target,
-                -phi_dot,
+                -leg.Theta,
+                -leg.dTheta,
+                0,
+                0,
+                0,
+                0,
             ]
 
             T, Tp = calc_lqr(k, x)
-            wheel_torque[i] = -max(-4.0, min(4.0, T))
+            wheel_torque[i] = 0#-max(-4.0, min(4.0, T))
 
             if i == 0:
                 self.Tp_r = Tp
