@@ -53,7 +53,7 @@
           <body name="wheel_right" pos="0.25495 -0.039583 0.0155">
             <joint name="jwheel_right" pos="0 0 0" axis="0 0 -1"/>
             <!-- 轮：cylinder 沿 body 局部 z 轴；与 jwheel_right 轴向一致 -->
-            <geom type="cylinder" size="0.06 0.018" material="arm_blue"
+            <geom type="cylinder" size="0.088 0.018" material="arm_blue"
                   class="touch" mass="0.322"/>
           </body>
         </body>
@@ -128,7 +128,7 @@
 
           <body name="wheel_left" pos="0.25495 -0.039576 -0.0155">
             <joint name="jwheel_left" pos="0 0 0" axis="0 0 1"/>
-            <geom type="cylinder" size="0.06 0.018" material="arm_red"
+            <geom type="cylinder" size="0.088 0.018" material="arm_red"
                   class="touch" mass="0.322"/>
           </body>
         </body>
