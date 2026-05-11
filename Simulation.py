@@ -16,6 +16,10 @@ def main():
     parser.add_argument('--model', default='MJCF/env.xml',
                         help='MJCF entry file. e.g. MJCF/env.xml (STL mesh) or '
                              'MJCF_primitive/env.xml (cylinder/box primitives)')
+    parser.add_argument('--realtime', dest='realtime', action='store_true', default=True,
+                        help='节流到 1× realtime（默认开）')
+    parser.add_argument('--fast', dest='realtime', action='store_false',
+                        help='禁用节流，让仿真按 CPU 全速跑（用于跑长仿真/调参/批量验证）')
     args, _ = parser.parse_known_args()
 
     GBC486 = LegWheelRobot(args.model)
@@ -26,7 +30,7 @@ def main():
     keyboard = KeyboardController()
 
     # 选择控制器: CTRL_LQR 或 CTRL_PID
-    ctrl = create_controller(CTRL_MPC)
+    ctrl = create_controller(CTRL_PID)
     # 监控用状态估计器（复用控制器的五连杆参数）
     leg_params = getattr(ctrl, 'leg_params', None)
     state = StateEstimator(leg_params)
@@ -39,8 +43,10 @@ def main():
 
     # realtime 节流：每个 mj_step 推进 model.opt.timestep（默认 1 ms 仿真时间），
     # 用 perf_counter 精确补偿累计 wall-time 误差，避免单次 sleep 抖动累积
+    # --fast 关闭节流，让 CPU 全速跑
     step_dt = GBC486.model.opt.timestep
     loop_start = time.perf_counter()
+    print(f"时间模式: {'1× realtime' if args.realtime else '全速 (无节流)'}")
 
     while True:
         i = i + 1
@@ -92,10 +98,11 @@ def main():
 
         # 节流到 1× realtime：基于"应该到达的总 wall-time"补偿，自然纠偏累计漂移
         # （如果某帧耗时超 step_dt，下一帧不会 sleep，自动追赶；不会出现累计提前）
-        target_wall = loop_start + i * step_dt
-        remaining = target_wall - time.perf_counter()
-        if remaining > 0:
-            time.sleep(remaining)
+        if args.realtime:
+            target_wall = loop_start + i * step_dt
+            remaining = target_wall - time.perf_counter()
+            if remaining > 0:
+                time.sleep(remaining)
 
 
 if __name__ == '__main__':
