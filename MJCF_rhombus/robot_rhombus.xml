@@ -44,7 +44,8 @@
 
   <worldbody>
     <body name="base" pos="0 0 0.25">
-      <joint name="base_free" type="free"/>
+    <!-- "扣雷挖及悠打"，注释下面这行代码可以让车身悬浮在空中 -->
+      <!-- <joint name="base_free" type="free"/> -->
       <site name="imu" type="box" size="0.002 0.002 0.002" rgba="1 1 0 1"/>
       <geom name="base_box" type="box" size="0.12 0.18 0.05" pos="0 0 0.05"
             material="base_mat" class="touch" mass="8.4"/>

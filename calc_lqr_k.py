@@ -17,30 +17,37 @@ from scipy.linalg import solve_continuous_are
 CONFIG_FILE = "lqr_config.json"
 
 # ========== 默认参数 ==========
+# 与 MJCF_rhombus/robot_rhombus.xml 对应：
+#   - 单腿 4 根连杆质量 = 0.5(AG) + 1.0(GH) + 0.5(AB) + 1.0(BE) = 3.0 kg
+#   - 上下连杆等长 L1=L2=L3=L4=0.15 m，hip 间距 L5=0.04 m
+#   - base box 0.24×0.36×0.10 m, 质量 8.4 kg, COM 相对 hip 轴线沿 z 偏移 ≈ 0.05 m
+#   - 关于 pitch (body y) 的转动惯量：I = M/12*(Lx²+Lz²) = 8.4/12*(0.24²+0.10²) ≈ 0.0473
 DEFAULT_ROBOT_PARAMS = {
     "R":  0.088,             # 驱动轮半径 (m)
-    "l":  0.03,            # 机体质心距转轴距离 (m)
+    "l":  0.05,              # 机体质心距 hip 转轴距离 (m)，对应 base_box 的 z 偏移
     "mw": 0.322,             # 单个驱动轮质量 (kg)
-    "mp": 2.751,             # 单腿质量 (kg)（不含轮子）
+    "mp": 3.0,               # 单腿质量 (kg)（含 AG/GH/AB/BE 四根连杆，不含轮子）
     "M":  8.4,               # 机体质量 (kg)
-    "IM": 0.112177,          # 机体绕pitch轴转动惯量 (kg·m²)
+    "IM": 0.0473,            # 机体绕 pitch 轴转动惯量 (kg·m²)
     "g":  9.81,
 }
 
 DEFAULT_LEG_PARAMS = {
-    "l1": 0.21,             # 连杆1长度 (m)
-    "l2": 0.24,             # 连杆2长度 (m)
-    "l3": 0.24,             # 连杆3长度 (m)
-    "l4": 0.21,             # 连杆4长度 (m)
-    "l5": 0.0,               # A-E距离 (m)
+    "l1": 0.15,              # 上连杆（rear, AG） (m)
+    "l2": 0.15,              # 下连杆（rear, GH） (m)
+    "l3": 0.15,              # 下连杆（front, BE） (m)
+    "l4": 0.15,              # 上连杆（front, AB） (m)
+    "l5": 0.04,              # A_rear ↔ A_front 沿 base x 的 hip 间距 (m)
 }
 
-#           [theta, d_theta, x,      d_x,   phi,    d_phi] 
+#           [theta, d_theta, x,      d_x,   phi,    d_phi]
 DEFAULT_Q = [50.0,   1.0,    500.0, 100.0, 7000.0, 1.0]
 #           [T (wheel), Tp (hip)]
 DEFAULT_R = [100.0, 1.0]
 
-DEFAULT_L0_RANGE = {"min": 0.10, "max": 0.40, "n_points": 30}
+# 菱形 5 连杆腿长可行域：L1+L2=0.30 是几何上限，留 5 cm 余量；
+# 下限同样留 5 cm 避免接近完全折叠时的奇异。
+DEFAULT_L0_RANGE = {"min": 0.08, "max": 0.28, "n_points": 30}
 
 
 def dynamics(state, ctrl, leg_length, params):
@@ -226,7 +233,7 @@ if __name__ == "__main__":
     save_config(config)
 
     # 验证
-    L0_test = 0.25
+    L0_test = 0.17  # 菱形模型默认零位 hip→foot ≈ 0.172 m
     K_exact = compute_k(L0_test)
     print(f"\nL0={L0_test}m 精确 K:")
     print(f"  T  = {np.round(K_exact[0], 3)}")
