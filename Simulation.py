@@ -1,3 +1,4 @@
+import argparse
 import mujoco
 import mujoco.viewer
 import numpy as np
@@ -11,8 +12,13 @@ from CommandServer import CommandServer, apply_to_controller
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Five-link leg-wheel robot simulation')
+    parser.add_argument('--model', default='MJCF/env.xml',
+                        help='MJCF entry file. e.g. MJCF/env.xml (STL mesh) or '
+                             'MJCF_primitive/env.xml (cylinder/box primitives)')
+    args, _ = parser.parse_known_args()
 
-    GBC486 = LegWheelRobot('MJCF/env.xml')
+    GBC486 = LegWheelRobot(args.model)
     i = 0
     t1 = 1   # 传感器读取周期 (ms)
     t2 = 4   # 控制计算周期 (ms)
