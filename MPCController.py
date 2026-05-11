@@ -159,6 +159,13 @@ class MPCBalanceController:
         self.x_target = 0.0
         self.v_target = 0.0
         self.yaw_target = 0.0
+        self.pitch_target = 0.0  # 机体 pitch 目标 (rad)
+
+        # |v_target| 超过此阈值进入速度控制模式：冻结进入瞬间的位置误差，
+        # 让 x_target 随 body_x 等速漂移，位置误差保持不变（不累加）
+        self.v_hold_threshold = 0.05
+        self._prev_v_mode = False
+        self._frozen_x_err = 0.0
 
         # 状态估计器
         self.state = StateEstimator(self.leg_params)
@@ -168,7 +175,7 @@ class MPCBalanceController:
         self.pid_L0_l = PID(p=2000.0, i=10.0, d=9000.0, integral_limit=50.0, output_limit=300.0)
 
         # yaw PID（差分轮子力矩）
-        self.pid_yaw = PID(p=100.0, i=1.0, d=500.0, integral_limit=2.0, output_limit=4.0)
+        self.pid_yaw = PID(p=10.0, i=0.1, d=30.0, integral_limit=2.0, output_limit=4.0)
 
         # warm start（两条腿各一份）
         self._U_prev = [np.zeros(2 * self.N), np.zeros(2 * self.N)]
@@ -212,16 +219,26 @@ class MPCBalanceController:
         body_x = self.state.body.x
         body_vx = self.state.body.x_dot
 
+        # 速度控制模式：冻结位置误差。进入瞬间记录 delta = body_x - x_target，
+        # 之后令 x_target = body_x - delta，使误差恒为 delta（不累加）
+        v_mode = abs(self.v_target) > self.v_hold_threshold
+        if v_mode:
+            if not self._prev_v_mode:
+                self._frozen_x_err = body_x - self.x_target
+            self.x_target = body_x - self._frozen_x_err
+        self._prev_v_mode = v_mode
+
         # --- MPC → 驱动轮力矩（左右独立） ---
         wheel_torque = [0.0, 0.0]
         for i in range(2):
             leg = self.state.leg[i]
+            # phi = -pitch，因此 -phi = pitch；误差 = pitch - pitch_target
             x0 = np.array([
                 leg.Theta,
                 leg.dTheta,
                 (body_x - self.x_target),
                 (body_vx - self.v_target),
-                -phi,
+                -phi - self.pitch_target,
                 -phi_dot,
             ])
             
