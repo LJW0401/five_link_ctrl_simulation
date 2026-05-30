@@ -77,14 +77,17 @@ class LegWheelRobot:
         self.body_vx = (self.body_x - self.last_body_x) * self.sensor_f
         self.last_body_x = self.body_x
 
-        # 右前关节位置
-        right_front_pos = self.data.sensor('Right_front_joint_pos').data.copy()[0]+0.027  #AB
-        # 右后关节位置
-        right_rear_pos = self.data.sensor('Right_rear_joint_pos').data.copy()[0]+1.3     #AG
-        # 左前关节位置
-        left_front_pos = self.data.sensor('Left_front_joint_pos').data.copy()[0]+0.003   #IJ
-        # 左后关节位置
-        left_rear_pos = self.data.sensor('Left_rear_joint_pos').data.copy()[0]-1.3       #IO
+        # 关节零位标定：把仿真原始角度映射到 VMC 内部使用的关节坐标系。
+        # MJCF_rhombus 模型设计为：所有关节原始角=0 时即对称竖直腿，
+        # 对应 VMC 的 phi1=π-α、phi4=α，其中 α=atan2(0.11225, 0.0995)≈0.8452 rad
+        # （由 L1=0.15, L2=0.24, L5=0.10, 默认 L0=0.30 解出）。
+        # StateEstimator 里 vmc_r.phi1 = -joint_pos[1] + π，vmc_r.phi4 = -joint_pos[0]，
+        # 因此对应：joint_pos[0] = -α、joint_pos[1] = α；左腿镜像。
+        _ALPHA = 0.8452
+        right_front_pos = self.data.sensor('Right_front_joint_pos').data.copy()[0] - _ALPHA  # AB
+        right_rear_pos  = self.data.sensor('Right_rear_joint_pos').data.copy()[0]  + _ALPHA  # AG
+        left_front_pos  = self.data.sensor('Left_front_joint_pos').data.copy()[0]  + _ALPHA  # IJ
+        left_rear_pos   = self.data.sensor('Left_rear_joint_pos').data.copy()[0]   - _ALPHA  # IO
         new_joint_pos = np.array([right_front_pos, right_rear_pos, left_front_pos, left_rear_pos])
         self.joint_vel = (new_joint_pos - self.joint_pos) * self.sensor_f
         self.joint_pos = new_joint_pos

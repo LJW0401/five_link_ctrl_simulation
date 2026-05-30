@@ -84,7 +84,9 @@ class LQRBalanceController:
         print(f"[LQR] 加载K矩阵查找表: {n}点, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
 
         # 目标值
-        self.L0_target = 0.2
+        # MJCF_rhombus 默认零位 L0 = 0.30 m，控制器以同样的腿长作为平衡目标，
+        # 避免上电瞬间 PID 命令大幅压腿、把 5-bar 拖出工作空间。
+        self.L0_target = 0.20
         self.x_target = 0.0
         self.v_target = 0.0
         self.yaw_target = 0.0
@@ -167,7 +169,7 @@ class LQRBalanceController:
                 self.Tp_l = Tp
 
         # --- yaw PID ---
-        yaw_correction = self.pid_yaw.calc(self.state.body.y, self.yaw_target)
+        yaw_correction = 0#self.pid_yaw.calc(self.state.body.y, self.yaw_target)
         wheel_torque[0] += yaw_correction
         wheel_torque[1] -= yaw_correction
 
