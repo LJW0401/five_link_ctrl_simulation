@@ -1,5 +1,8 @@
-function K = get_k_length(leg_length)
-   
+function [K, params] = get_k_length(leg_length)
+    % 返回:
+    %   K      : 该腿长下的 LQR 增益矩阵 (2x6)
+    %   params : 与腿长无关的导出参数（robot_params / Q / R），供 get_k.m 写 JSON 复用
+
     %theta : 摆杆与竖直方向夹角             R   ：驱动轮半径
     %x     : 驱动轮位移                     L   : 摆杆重心到驱动轮轴距离
     %phi   : 机体与水平夹角                 LM  : 摆杆重心到其转轴距离
@@ -50,9 +53,17 @@ function K = get_k_length(leg_length)
     B=double(B);
     
     % Q/R 与 calc_lqr_k.py 的 DEFAULT_Q / DEFAULT_R 保持一致
-    Q=diag([50 1 100 100 2000 10]);  %theta d_theta x d_x phi d_phi
-    R=diag([20 1]);                  %T(wheel) Tp(hip)
-    
+    Qvec=[50 1 100 100 2000 10];     %theta d_theta x d_x phi d_phi
+    Rvec=[20 1];                     %T(wheel) Tp(hip)
+    Q=diag(Qvec);
+    R=diag(Rvec);
+
     K=lqr(A,B,Q,R);
-  
+
+    % 导出用参数（与腿长无关，取本函数内的真实取值）
+    params.robot_params = struct('R', R1, 'l', l1, 'mw', mw1, ...
+                                 'mp', mp1, 'M', M1, 'IM', IM1, 'g', 9.81);
+    params.Q = Qvec;
+    params.R = Rvec;
+
 end
