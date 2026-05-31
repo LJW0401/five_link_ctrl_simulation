@@ -14,17 +14,17 @@ function K = get_k_length(leg_length)
     syms x(t) T R Iw mw M L LM theta(t) l phi(t) mp g Tp Ip IM
     syms f1 f2 f3 d_theta d_x d_phi theta0 x0 phi0 
 
-    % 物理参数与仿真侧 calc_lqr_k.py 保持一致
-    R1=0.05;                          %驱动轮半径 (R_WHEEL)
+    % 物理参数与仿真侧 calc_lqr_k.py 的 DEFAULT_ROBOT_PARAMS 保持一致
+    R1=0.088;                         %驱动轮半径 R
     L1=leg_length/2;                  %摆杆重心到驱动轮轴距离
     LM1=leg_length/2;                 %摆杆重心到其转轴距离
-    l1=0.03;                          %机体质心距离转轴距离 (L_BODY)
-    mw1=0.5;                          %驱动轮质量 (MW)
-    mp1=0.3;                          %杆质量 (MP)
-    M1=3.0;                           %机体质量 (MB)
+    l1=-0.05;                         %机体质心距 hip 转轴距离 l（base_box 沿 z 偏移，为负）
+    mw1=0.322;                        %单个驱动轮质量 mw
+    mp1=3.0;                          %单腿质量 mp（4 根连杆，不含轮子）
+    M1=8.4;                           %机体质量 M
     Iw1=mw1*R1^2;                     %驱动轮转动惯量
-    Ip1=mp1*((L1+LM1)^2+0.05^2)/12.0; %摆杆转动惯量
-    IM1=M1*(0.3^2+0.12^2)/12.0;       %机体绕质心转动惯量
+    Ip1=mp1*((L1+LM1)^2+0.05^2)/12.0; %摆杆转动惯量（与 py 中 Ip 同式）
+    IM1=0.0473;                       %机体绕 pitch 轴转动惯量 IM（与 py 中 IM 取值一致）
 
     
     NM = M*diff(x + (L + LM )*sin(theta)-l*sin(phi),t,2);

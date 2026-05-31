@@ -4,7 +4,8 @@
 tic
 
 %% ===== 1. 逐腿长求 LQR 增益，采样到矩阵 =====
-leg = 0.1:0.01:0.4;          % 腿长采样点 L0
+% 腿长采样区间与 calc_lqr_k.py 的 DEFAULT_L0_RANGE 一致：[0.12, 0.36]，30 点
+leg = linspace(0.12, 0.36, 30);   % 腿长采样点 L0
 n_leg = numel(leg);
 K_samp = zeros(n_leg, 12);   % 每行 = 该腿长下 reshape 成 1x12 的增益（按 K' 行优先展开）
 
