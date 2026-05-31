@@ -14,13 +14,14 @@ function K = get_k_length(leg_length)
     syms x(t) T R Iw mw M L LM theta(t) l phi(t) mp g Tp Ip IM
     syms f1 f2 f3 d_theta d_x d_phi theta0 x0 phi0 
 
-    R1=0.086;                         %驱动轮半径
+    % 物理参数与仿真侧 calc_lqr_k.py 保持一致
+    R1=0.05;                          %驱动轮半径 (R_WHEEL)
     L1=leg_length/2;                  %摆杆重心到驱动轮轴距离
     LM1=leg_length/2;                 %摆杆重心到其转轴距离
-    l1=0.03;                          %机体质心距离转轴距离
-    mw1=1.18;                         %驱动轮质量
-    mp1=1.11;                         %杆质量
-    M1=10.3;                          %机体质量
+    l1=0.03;                          %机体质心距离转轴距离 (L_BODY)
+    mw1=0.5;                          %驱动轮质量 (MW)
+    mp1=0.3;                          %杆质量 (MP)
+    M1=3.0;                           %机体质量 (MB)
     Iw1=mw1*R1^2;                     %驱动轮转动惯量
     Ip1=mp1*((L1+LM1)^2+0.05^2)/12.0; %摆杆转动惯量
     IM1=M1*(0.3^2+0.12^2)/12.0;       %机体绕质心转动惯量
@@ -42,10 +43,10 @@ function K = get_k_length(leg_length)
     [f1,f2,f3] = solve(eqn10,eqn20,eqn30,f1,f2,f3);
    
     A=subs(jacobian([d_theta,f1,d_x,f2,d_phi,f3],[theta0,d_theta,x0,d_x,phi0,d_phi]),[theta0,d_theta,d_x,phi0,d_phi,T,Tp],[0,0,0,0,0,0,0]);
-    A=subs(A,[R,L,LM,l,mw,mp,M,Iw,Ip,IM,g],[R1,L1,LM1,l1,mw1,mp1,M1,Iw1,Ip1,IM1,9.8]);
+    A=subs(A,[R,L,LM,l,mw,mp,M,Iw,Ip,IM,g],[R1,L1,LM1,l1,mw1,mp1,M1,Iw1,Ip1,IM1,9.81]);
     A=double(A);
     B=subs(jacobian([d_theta,f1,d_x,f2,d_phi,f3],[T,Tp]),[theta0,d_theta,d_x,phi0,d_phi,T,Tp],[0,0,0,0,0,0,0]);
-    B=subs(B,[R,L,LM,l,mw,mp,M,Iw,Ip,IM,g],[R1,L1,LM1,l1,mw1,mp1,M1,Iw1,Ip1,IM1,9.8]);
+    B=subs(B,[R,L,LM,l,mw,mp,M,Iw,Ip,IM,g],[R1,L1,LM1,l1,mw1,mp1,M1,Iw1,Ip1,IM1,9.81]);
     B=double(B);
     
     Q=diag([100 1 500 100 5000 1]);%theta d_theta x d_x phi d_phi%700 1 600 200 1000 1
