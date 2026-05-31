@@ -10,7 +10,7 @@ n_leg = numel(leg);
 K_samp = zeros(n_leg, 12);   % 每行 = 该腿长下 reshape 成 1x12 的增益（按 K' 行优先展开）
 
 for idx = 1:n_leg
-    k = get_k_length(leg(idx));          % 2x6
+    [k, params] = get_k_length(leg(idx)); % k:2x6；params:导出用参数（与腿长无关）
     K_samp(idx, :) = reshape(k.', 1, 12); % 行优先：[K11..K16 K21..K26]
     fprintf('leg_length=%.3f\n', leg(idx));
 end
@@ -66,4 +66,31 @@ for c = 1:12
         floor((c - 1) / 6) + 1, mod(c - 1, 6) + 1, poly_order + 1, ...
         K_coef(c, 1), K_coef(c, 2), K_coef(c, 3), K_coef(c, 4));
 end
+
+%% ===== 5. 导出 lqr_config.json（与仿真侧 calc_lqr_k.py 同格式）=====
+% K_poly_coef[i][j] = 第 c=(i-1)*6+j 个分量的多项式系数（高次在前，与 polyval 一致）
+K_poly_coef = cell(1, 2);
+for i = 1:2
+    row_cell = cell(1, 6);
+    for j = 1:6
+        row_cell{j} = K_coef((i - 1) * 6 + j, :);
+    end
+    K_poly_coef{i} = row_cell;
+end
+
+% robot_params / Q / R 直接取自 get_k_length.m（params），不在此重复硬编码；
+% leg_params 是 5-bar 连杆几何，get_k_length 的模型未涉及，仍按仿真侧取值给出
+config.robot_params = params.robot_params;
+config.leg_params   = struct('l1', 0.15, 'l2', 0.24, 'l3', 0.24, ...
+                             'l4', 0.15, 'l5', 0.10);
+config.Q            = params.Q;
+config.R            = params.R;
+config.L0_range     = struct('min', min(leg), 'max', max(leg), 'n_points', n_leg);
+config.poly_order   = poly_order;
+config.K_poly_coef  = K_poly_coef;
+
+fid = fopen('lqr_config.json', 'w');
+fwrite(fid, jsonencode(config, 'PrettyPrint', true));
+fclose(fid);
+fprintf('lqr_config.json 已导出\n');
 toc
