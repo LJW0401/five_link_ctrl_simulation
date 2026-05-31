@@ -7,7 +7,7 @@ LQR K 矩阵计算（纯数值方法）
 原理:
   1. 数值有限差分求 A, B 矩阵
   2. scipy Riccati 求解 LQR
-  3. 结果存为 JSON 查找表
+  3. 对 K 的 12 个分量随 L0 分别做 3 阶多项式拟合，系数存为 JSON
 """
 
 import json
@@ -48,6 +48,9 @@ DEFAULT_R = [20.0, 1.0]
 # 菱形 5 连杆腿长可行域：L1+L2=0.39 是几何上限，留余量；
 # 下限避免接近完全折叠时的奇异。
 DEFAULT_L0_RANGE = {"min": 0.12, "max": 0.36, "n_points": 30}
+
+# K 分量随 L0 的多项式拟合阶数（与 matlab_k_table/get_k.m 一致）
+POLY_ORDER = 3
 
 
 def dynamics(state, ctrl, leg_length, params):
@@ -170,8 +173,16 @@ def generate_config(params=None, leg_params=None, Q=None, R=None, L0_range=None)
     K_arr = np.array(K_table)  # (n, 2, 6)
     L0_arr = np.array(L0_values)
 
-    # 绘制曲线
-    plot_k_curve(L0_arr, K_arr)
+    # 对 12 个分量分别做 POLY_ORDER 阶多项式拟合：
+    #   K_poly_coef[i][j] = polyfit 系数（高次在前，长度 = POLY_ORDER+1）
+    #   运行时 K[i][j](L0) = polyval(K_poly_coef[i][j], L0)
+    K_poly_coef = [[None] * 6 for _ in range(2)]
+    for i in range(2):
+        for j in range(6):
+            K_poly_coef[i][j] = np.polyfit(L0_arr, K_arr[:, i, j], POLY_ORDER).tolist()
+
+    # 绘制曲线（散点 + 拟合）
+    plot_k_curve(L0_arr, K_arr, K_poly_coef)
 
     config = {
         "robot_params": params,
@@ -179,31 +190,45 @@ def generate_config(params=None, leg_params=None, Q=None, R=None, L0_range=None)
         "Q": Q,
         "R": R,
         "L0_range": L0_range,
-        "L0_values": L0_values,
-        "K_table": K_table,
+        "poly_order": POLY_ORDER,
+        "K_poly_coef": K_poly_coef,
     }
     return config
 
 
-def plot_k_curve(L0_arr, K_arr):
-    """绘制 K 矩阵随 L0 变化的曲线"""
+def plot_k_curve(L0_arr, K_arr, K_poly_coef):
+    """绘制 K 矩阵随 L0 变化的曲线：逐点 LQR 散点 + 多项式拟合曲线"""
     import matplotlib.pyplot as plt
 
     state_names = ["theta", "d_theta", "x", "dx", "phi", "d_phi"]
     row_labels = ["T (wheel)", "Tp (hip)"]
 
+    xf = np.linspace(L0_arr.min(), L0_arr.max(), 400)  # 加密网格画平滑拟合曲线
+
     fig, axes = plt.subplots(2, 6, figsize=(20, 6))
-    fig.suptitle("K matrix vs L0 (linear interpolation lookup table)", fontsize=14)
+    fig.suptitle(f"K matrix vs L0 (order-{POLY_ORDER} polynomial fit)", fontsize=14)
 
     for i in range(2):
         for j in range(6):
             ax = axes[i][j]
-            ax.plot(L0_arr, K_arr[:, i, j], 'o-', markersize=3, linewidth=1.2)
-            ax.set_title(f"k[{i}][{j}] ({state_names[j]})", fontsize=9)
+            y_samp = K_arr[:, i, j]
+            coef = K_poly_coef[i][j]
+            y_hat = np.polyval(coef, L0_arr)   # 采样点处拟合值，用于算 R²
+
+            # 拟合优度 R²
+            ss_res = np.sum((y_samp - y_hat) ** 2)
+            ss_tot = np.sum((y_samp - y_samp.mean()) ** 2)
+            r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
+
+            ax.scatter(L0_arr, y_samp, s=12, c='b', label='LQR sample')
+            ax.plot(xf, np.polyval(coef, xf), 'r-', linewidth=1.4, label='poly fit')
+            ax.set_title(f"k[{i}][{j}] ({state_names[j]})  R²={r2:.4f}", fontsize=9)
             if j == 0:
                 ax.set_ylabel(row_labels[i], fontsize=9)
             if i == 1:
                 ax.set_xlabel("L0 (m)", fontsize=8)
+            if i == 0 and j == 0:
+                ax.legend(fontsize=7)
             ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
