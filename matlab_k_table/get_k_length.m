@@ -49,8 +49,9 @@ function K = get_k_length(leg_length)
     B=subs(B,[R,L,LM,l,mw,mp,M,Iw,Ip,IM,g],[R1,L1,LM1,l1,mw1,mp1,M1,Iw1,Ip1,IM1,9.81]);
     B=double(B);
     
-    Q=diag([100 1 500 100 5000 1]);%theta d_theta x d_x phi d_phi%700 1 600 200 1000 1
-    R=[240 0;0 25];                %T Tp
+    % Q/R 与 calc_lqr_k.py 的 DEFAULT_Q / DEFAULT_R 保持一致
+    Q=diag([50 1 100 100 2000 10]);  %theta d_theta x d_x phi d_phi
+    R=diag([20 1]);                  %T(wheel) Tp(hip)
     
     K=lqr(A,B,Q,R);
   
