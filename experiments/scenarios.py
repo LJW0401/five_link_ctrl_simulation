@@ -98,7 +98,7 @@ SCENARIOS = [
     Scenario("balance", 1, "平衡保持", duration=20.0, init_L0=0.20,
              apply=_apply_balance, settle=3.0,
              metric={"name": "pitch RMS", "unit": "°"}),
-    Scenario("pos_step", 2, "位置阶跃", duration=20.0, init_L0=0.20,
+    Scenario("pos_step", 2, "位置阶跃", duration=30.0, init_L0=0.20,
              apply=_apply_pos_step, settle=1.0,
              step_time=POS_STEP_TIME, step_target=POS_STEP_TARGET,
              metric={"name": "上升时间", "unit": "s"}),
