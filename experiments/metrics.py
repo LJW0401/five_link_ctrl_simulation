@@ -53,14 +53,23 @@ def compute_metrics(data, scenario):
     if idx == 1:  # 平衡保持：稳态 pitch RMS
         m["headline"] = m["pitch_rms_deg"]
 
-    elif idx == 2:  # 位置阶跃：上升时间 + pitch 反向超调
+    elif idx == 2:  # 位置阶跃：上升时间 + pitch 反向超调 + 终值位置误差
         st = scenario.step_time
-        target = 0.5
+        target = scenario.step_target
         after = _window(t, lo=st)
         x_after = data["x"][after]
         t_after = t[after]
+        # 终值与稳态位置误差（取阶跃后末段均值）
+        end = _window(t, lo=scenario.duration - 1.0)
+        x_final = float(np.mean(data["x"][end])) if end.any() else float("nan")
+        m["x_final"] = x_final
+        m["pos_ss_err"] = float(abs(x_final - target))
+        # 上升时间仅在「确实稳定到目标附近」时才有意义（终值在 ±20% 目标内），
+        # 否则记为 NaN —— 避免把发散/大幅振荡中的瞬时穿越误报为上升时间。
+        settled = abs(x_final - target) <= 0.2 * abs(target)
         reach = np.where(x_after >= 0.9 * target)[0]
-        m["rise_time_s"] = float(t_after[reach[0]] - st) if reach.size else float("nan")
+        m["rise_time_s"] = (float(t_after[reach[0]] - st)
+                            if (settled and reach.size) else float("nan"))
         # 反向超调：阶跃后 pitch 与前进方向相反的最大幅值
         tr = _window(t, lo=st, hi=st + 3.0)
         seg = pitch_deg[tr]

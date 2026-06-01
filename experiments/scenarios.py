@@ -16,7 +16,7 @@ import math
 class Scenario:
     def __init__(self, key, index, title, duration, init_L0,
                  apply, disturbance=None, settle=2.0,
-                 step_time=None, metric=None):
+                 step_time=None, step_target=None, metric=None):
         self.key = key            # 文件名用短标识
         self.index = index        # 论文工况编号
         self.title = title        # 中文工况名
@@ -26,6 +26,7 @@ class Scenario:
         self._disturbance = disturbance
         self.settle = settle      # 稳态指标跳过的前段 (s)
         self.step_time = step_time  # 阶跃/扰动发生时刻 (s)，用于瞬态指标
+        self.step_target = step_target  # 阶跃目标值（如位置阶跃终值 m）
         self.metric = metric or {}  # 该工况的「头条指标」描述
 
     def disturbance(self, t):
@@ -43,11 +44,16 @@ def _apply_balance(t, ctrl):
     ctrl.yaw_target = 0.0
 
 
+# 位置阶跃参数：t=10s 时阶跃到 5m
+POS_STEP_TIME = 10.0
+POS_STEP_TARGET = 5.0
+
+
 def _apply_pos_step(t, ctrl):
     ctrl.L0_target = 0.20
     ctrl.v_target = 0.0
     ctrl.yaw_target = 0.0
-    ctrl.x_target = 0.5 if t >= 1.0 else 0.0
+    ctrl.x_target = POS_STEP_TARGET if t >= POS_STEP_TIME else 0.0
 
 
 def _apply_vel_track(t, ctrl):
@@ -92,8 +98,9 @@ SCENARIOS = [
     Scenario("balance", 1, "平衡保持", duration=20.0, init_L0=0.20,
              apply=_apply_balance, settle=3.0,
              metric={"name": "pitch RMS", "unit": "°"}),
-    Scenario("pos_step", 2, "位置阶跃", duration=9.0, init_L0=0.20,
-             apply=_apply_pos_step, settle=1.0, step_time=1.0,
+    Scenario("pos_step", 2, "位置阶跃", duration=20.0, init_L0=0.20,
+             apply=_apply_pos_step, settle=1.0,
+             step_time=POS_STEP_TIME, step_target=POS_STEP_TARGET,
              metric={"name": "上升时间", "unit": "s"}),
     Scenario("vel_track", 3, "速度跟踪", duration=9.0, init_L0=0.20,
              apply=_apply_vel_track, settle=1.0, step_time=1.0,
