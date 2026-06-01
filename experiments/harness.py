@@ -77,6 +77,8 @@ def run_one(ctrl_type, scenario):
         "t", "pitch", "pitch_cmd", "yaw", "x", "x_true", "vx",
         "L0", "L0_target", "x_target", "v_target", "yaw_target",
         "T_right", "T_left", "Tp_r", "Tp_l", "solve_ms",
+        # 控制器实际反馈的六维状态向量 x=(θ,θ̇,x,ẋ,φ,φ̇)（已减目标，即 u=-Kx 的 x）
+        "s_theta", "s_dtheta", "s_x", "s_dx", "s_phi", "s_dphi",
     )}
 
     with _suppress_stdout():
@@ -155,5 +157,16 @@ def run_one(ctrl_type, scenario):
                 log["Tp_r"].append(getattr(ctrl, "Tp_r", 0.0))
                 log["Tp_l"].append(getattr(ctrl, "Tp_l", 0.0))
                 log["solve_ms"].append(solve_ms)
+
+                # 六维状态反馈量（与 LQR/MPC 内部 u=-Kx 的 x 完全一致；右腿）
+                leg0 = ctrl.state.leg[0]
+                phi = ctrl.state.body.phi
+                phi_dot = ctrl.state.body.phi_dot
+                log["s_theta"].append(leg0.Theta)
+                log["s_dtheta"].append(leg0.dTheta)
+                log["s_x"].append(ctrl.state.body.x - getattr(ctrl, "x_target", 0.0))
+                log["s_dx"].append(ctrl.state.body.x_dot - getattr(ctrl, "v_target", 0.0))
+                log["s_phi"].append(-phi - getattr(ctrl, "pitch_target", 0.0))
+                log["s_dphi"].append(-phi_dot)
 
     return {k: np.asarray(v, dtype=float) for k, v in log.items()}

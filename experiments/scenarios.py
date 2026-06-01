@@ -89,7 +89,7 @@ def _disturb_push(t):
 # ---------- 工况清单 ----------
 
 SCENARIOS = [
-    Scenario("balance", 1, "平衡保持", duration=10.0, init_L0=0.20,
+    Scenario("balance", 1, "平衡保持", duration=20.0, init_L0=0.20,
              apply=_apply_balance, settle=3.0,
              metric={"name": "pitch RMS", "unit": "°"}),
     Scenario("pos_step", 2, "位置阶跃", duration=9.0, init_L0=0.20,

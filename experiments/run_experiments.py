@@ -43,6 +43,7 @@ CSV_COLUMNS = [
     "t", "pitch", "pitch_cmd", "yaw", "x", "x_true", "vx",
     "L0", "L0_target", "x_target", "v_target", "yaw_target",
     "T_right", "T_left", "Tp_r", "Tp_l", "solve_ms",
+    "s_theta", "s_dtheta", "s_x", "s_dx", "s_phi", "s_dphi",
 ]
 
 
@@ -191,6 +192,10 @@ def main(argv=None):
             metrics_json[f"case{s.index}_{ck}"] = mt
         fig_path = plotting.plot_scenario(s, runs, config.FIG_DIR)
         print(f"       → 图表 {os.path.relpath(fig_path, config.REPO_ROOT)}")
+        # 平衡保持工况额外绘制六维状态反馈量随时间变化
+        if s.index == 1:
+            sp = plotting.plot_states(s, runs, config.FIG_DIR)
+            print(f"       → 六状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
 
     # 汇总（仅当三控制器全跑时才出汇总图/表）
     if set(controllers) == set(config.CONTROLLERS) and len(scenarios) == len(get_scenarios()):

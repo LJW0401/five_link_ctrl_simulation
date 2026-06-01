@@ -109,6 +109,40 @@ def plot_scenario(scenario, runs, out_dir):
     return path
 
 
+def plot_states(scenario, runs, out_dir):
+    """六维状态反馈量 x=(θ,θ̇,x,ẋ,φ,φ̇) 随时间变化（PID/LQR/MPC 同图对比）。"""
+    specs = [
+        ("s_theta", "θ  虚拟腿摆角 (rad)"),
+        ("s_dtheta", "θ̇  摆角速度 (rad/s)"),
+        ("s_x", "x  位移 (m)"),
+        ("s_dx", "ẋ  速度 (m/s)"),
+        ("s_phi", "φ  机体倾角 (=pitch, rad)"),
+        ("s_dphi", "φ̇  倾角速度 (rad/s)"),
+    ]
+    fig, axes = plt.subplots(3, 2, figsize=(11, 8.5), sharex=True)
+    axes = axes.ravel()
+    for ax, (key, ylabel) in zip(axes, specs):
+        for ck in config.CONTROLLERS:
+            if ck not in runs:
+                continue
+            d = runs[ck]
+            ax.plot(d["t"], d[key], color=config.CONTROLLER_COLOR[ck],
+                    lw=1.0, label=config.CONTROLLER_LABEL[ck])
+        ax.axhline(0.0, color="0.6", ls="--", lw=0.8)  # 目标值均为 0
+        ax.set_ylabel(ylabel)
+        ax.grid(True, alpha=0.3)
+    axes[0].legend(loc="best", fontsize=9, ncol=3)
+    axes[4].set_xlabel("时间 t (s)")
+    axes[5].set_xlabel("时间 t (s)")
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）六维状态反馈量随时间变化"
+                 f"（目标值均为 0，虚线）", fontsize=13)
+    fig.tight_layout(rect=(0, 0, 1, 0.98))
+    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_states.png")
+    fig.savefig(path)
+    plt.close(fig)
+    return path
+
+
 def plot_summary(scenarios, metrics_table, out_dir):
     """各工况头条指标的分组柱状图。metrics_table[ck][scenario.index] -> headline。"""
     labels = [f"{s.index}\n{s.title}" for s in scenarios]
