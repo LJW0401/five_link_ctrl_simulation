@@ -4,8 +4,8 @@
 tic
 
 %% ===== 1. 逐腿长求 LQR 增益，采样到矩阵 =====
-% 腿长采样区间与 calc_lqr_k.py 的 DEFAULT_L0_RANGE 一致：[0.12, 0.36]，30 点
-leg = linspace(0.12, 0.36, 30);   % 腿长采样点 L0
+% 腿长采样区间与 calc_lqr_k.py 的 DEFAULT_L0_RANGE 一致：[0.10, 0.40]，30 点
+leg = linspace(0.10, 0.40, 30);   % 腿长采样点 L0
 n_leg = numel(leg);
 K_samp = zeros(n_leg, 12);   % 每行 = 该腿长下 reshape 成 1x12 的增益（按 K' 行优先展开）
 
@@ -81,8 +81,8 @@ end
 % robot_params / Q / R 直接取自 get_k_length.m（params），不在此重复硬编码；
 % leg_params 是 5-bar 连杆几何，get_k_length 的模型未涉及，仍按仿真侧取值给出
 config.robot_params = params.robot_params;
-config.leg_params   = struct('l1', 0.15, 'l2', 0.24, 'l3', 0.24, ...
-                             'l4', 0.15, 'l5', 0.10);
+config.leg_params   = struct('l1', 0.21, 'l2', 0.24, 'l3', 0.24, ...
+                             'l4', 0.21, 'l5', 0.0);
 config.Q            = params.Q;
 config.R            = params.R;
 config.L0_range     = struct('min', min(leg), 'max', max(leg), 'n_points', n_leg);
