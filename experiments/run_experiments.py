@@ -197,13 +197,13 @@ def main(argv=None):
         # 平衡保持 / 腿长动态工况额外绘制六维状态反馈量随时间变化
         # （腿长 L0 不在这六维平衡状态内，故六状态目标仍为 0；
         #   工况5 借此展示腿长摆动对平衡状态的扰动）
-        if s.index in (1, 5):
+        if s.index == 1:
             sp = plotting.plot_states(s, runs, config.FIG_DIR)
             print(f"       → 六状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
-        # 腿长动态工况额外绘制腿长 L0 跟踪效果图
+        # 腿长动态工况：六维状态 + 腿长跟踪合并为一张图
         if s.index == 5:
-            lp = plotting.plot_leg_tracking(s, runs, config.FIG_DIR)
-            print(f"       → 腿长跟踪图 {os.path.relpath(lp, config.REPO_ROOT)}")
+            sp = plotting.plot_states_legtrack(s, runs, config.FIG_DIR)
+            print(f"       → 六状态+腿长跟踪图 {os.path.relpath(sp, config.REPO_ROOT)}")
         # 位置阶跃 / 速度跟踪工况额外绘制 φ / θ / x / dx 四条曲线
         # （目标虚线：位置阶跃在 x 面板，速度跟踪在 dx 面板）
         if s.index in (2, 3):

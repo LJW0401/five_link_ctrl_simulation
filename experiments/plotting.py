@@ -217,32 +217,63 @@ def plot_state_curves(scenario, runs, out_dir, specs, suffix="states"):
     return path
 
 
-def plot_leg_tracking(scenario, runs, out_dir):
-    """腿长 L0 跟踪效果：上图 L0 实际 vs 目标，下图跟踪误差（PID/LQR/MPC 对比）。"""
-    fig, (ax_l0, ax_err) = plt.subplots(2, 1, figsize=(8.5, 6.0), sharex=True)
+def plot_states_legtrack(scenario, runs, out_dir):
+    """六维状态反馈量 + 腿长 L0 跟踪 + 跟踪误差，合并为一张 8 面板图（用于腿长动态工况）。"""
+    state_specs = [
+        ("s_theta", "θ  虚拟腿摆角 (rad)"),
+        ("s_dtheta", "dθ/dt  摆角速度 (rad/s)"),
+        ("s_x", "x  位移 (m)"),
+        ("s_dx", "dx/dt  速度 (m/s)"),
+        ("s_phi", "φ  机体倾角 (=pitch, rad)"),
+        ("s_dphi", "dφ/dt  倾角速度 (rad/s)"),
+    ]
+    fig, axes = plt.subplots(4, 2, figsize=(11, 11), sharex=True)
+    axes = axes.ravel()
     ref = next(iter(runs.values()))
     rm = _m(ref)
+
+    # 前 6 格：六维状态（目标均为 0）
+    for ax, (key, ylabel) in zip(axes[:6], state_specs):
+        for ck in config.CONTROLLERS:
+            if ck not in runs:
+                continue
+            _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
+                      lw=1.0, label=config.CONTROLLER_LABEL[ck])
+        ax.axhline(0.0, color="0.6", ls="--", lw=0.8)
+        ax.set_ylabel(ylabel)
+        ax.grid(True, alpha=0.3)
+
+    # 第 7 格：腿长 L0 实际 vs 目标
+    ax_l0 = axes[6]
     for ck in config.CONTROLLERS:
         if ck not in runs:
             continue
-        d = runs[ck]
-        m = _m(d)
-        c = config.CONTROLLER_COLOR[ck]
-        lbl = config.CONTROLLER_LABEL[ck]
-        ax_l0.plot(d["t"][m], d["L0"][m], color=c, lw=1.3, label=lbl)
-        ax_err.plot(d["t"][m], (d["L0"] - d["L0_target"])[m], color=c, lw=1.1, label=lbl)
+        d = runs[ck]; m = _m(d)
+        ax_l0.plot(d["t"][m], d["L0"][m], color=config.CONTROLLER_COLOR[ck],
+                   lw=1.3, label=config.CONTROLLER_LABEL[ck])
     ax_l0.plot(ref["t"][rm], ref["L0_target"][rm], "k--", lw=1.1, label="目标 L0")
-    ax_err.axhline(0.0, color="0.6", ls="--", lw=0.8)
-
     ax_l0.set_ylabel("腿长 L0 (m)")
-    ax_err.set_ylabel("跟踪误差 L0−L0* (m)")
-    ax_err.set_xlabel("时间 t (s)")
-    for ax in (ax_l0, ax_err):
-        ax.grid(True, alpha=0.3)
-    ax_l0.legend(loc="best", fontsize=9, ncol=4)
-    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）腿长 L0 跟踪效果", fontsize=13)
+    ax_l0.grid(True, alpha=0.3)
+
+    # 第 8 格：腿长跟踪误差
+    ax_err = axes[7]
+    for ck in config.CONTROLLERS:
+        if ck not in runs:
+            continue
+        d = runs[ck]; m = _m(d)
+        ax_err.plot(d["t"][m], (d["L0"] - d["L0_target"])[m],
+                    color=config.CONTROLLER_COLOR[ck], lw=1.1)
+    ax_err.axhline(0.0, color="0.6", ls="--", lw=0.8)
+    ax_err.set_ylabel("L0 跟踪误差 (m)")
+    ax_err.grid(True, alpha=0.3)
+
+    axes[0].legend(loc="best", fontsize=9, ncol=3)
+    axes[6].set_xlabel("时间 t (s)")
+    axes[7].set_xlabel("时间 t (s)")
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）六维状态反馈量 + 腿长跟踪"
+                 f"（状态目标均为 0）", fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
-    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_legtrack.png")
+    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_states.png")
     fig.savefig(path)
     plt.close(fig)
     return path
