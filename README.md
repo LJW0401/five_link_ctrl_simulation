@@ -38,6 +38,8 @@ ctrl = create_controller(CTRL_MPC)   # 或 CTRL_LQR / CTRL_PID
 |---|---|
 | `Simulation.py` | 主循环：传感 1 ms / 控制 4 ms / 打印 20 ms |
 | `environment.py` | MuJoCo 封装（读传感器、下发力矩） |
+| `caculation.py` | 四元数转欧拉角等工具函数 |
+| `keyboard.py` | pynput 键盘输入，运行时下发指令 |
 | `StateEstimator.py` | IMU + 电机反馈 → 机体状态 + 两腿状态 |
 | `VMC.py` | 五连杆正/逆运动学、雅可比、力/力矩映射 |
 | `Controller.py` | 基础 PID 类 |
@@ -47,7 +49,11 @@ ctrl = create_controller(CTRL_MPC)   # 或 CTRL_LQR / CTRL_PID
 | `MPCController.py` | MPC 状态反馈（condensed QP + 投影梯度）|
 | `calc_lqr_k.py` | 离线计算 LQR K 查找表，生成 `lqr_config.json` |
 | `calc_mpc_config.py` | 离线计算 MPC 模型表与终端代价，生成 `mpc_config.json` |
-| `MJCF/` | 机器人模型（`env.xml` 为入口） |
+| `CommandServer.py` | 接收外部指令并应用到控制器 |
+| `send_command.py` | 向 CommandServer 发送指令的客户端 |
+| `MJCF/` | 机器人模型（STL 网格版，`env.xml` 为入口） |
+| `MJCF_rhombus/` | 菱形五连杆几何替身模型（cylinder/box，无 STL） |
+| `body_move_kinematic.py` | 机体位置运动学演示：直接写 `qpos` 让机体前后平移（纯运动学，不走动力学） |
 
 ---
 
