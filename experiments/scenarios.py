@@ -69,14 +69,14 @@ def _apply_vel_track(t, ctrl):
 
 
 def _apply_leg_sine(t, ctrl):
-    # L0 ∈ [0.15, 0.35] m，0.1 Hz 正弦；1 s 后开始摆动，留出起始平衡段
+    # L0 ∈ [0.15, 0.25] m（中心 0.20、幅值 0.05），0.1 Hz 正弦；1 s 后开始摆动，留出起始平衡段
     ctrl.x_target = 0.0
     ctrl.v_target = 0.0
     ctrl.yaw_target = 0.0
     if t >= 1.0:
-        ctrl.L0_target = 0.25 + 0.10 * math.sin(2 * math.pi * 0.1 * (t - 1.0))
+        ctrl.L0_target = 0.20 + 0.05 * math.sin(2 * math.pi * 0.1 * (t - 1.0))
     else:
-        ctrl.L0_target = 0.25
+        ctrl.L0_target = 0.20
 
 
 def _apply_disturb(t, ctrl):
@@ -108,7 +108,7 @@ SCENARIOS = [
     # 工况 4（yaw 阶跃）已移除：yaw 由三控制器共用的同一 yaw PID 跟踪，
     # 在 PID/LQR/MPC 间完全相同；且转向几乎不扰动平衡（转向期 pitch 偏差与工况1雷同），
     # 不提供超出工况1的对比信息，故删去。工况编号保留原值（4 处留空）。
-    Scenario("leg_sine", 5, "腿长动态变化", duration=22.0, init_L0=0.25,
+    Scenario("leg_sine", 5, "腿长动态变化", duration=22.0, init_L0=0.20,
              apply=_apply_leg_sine, settle=2.0,
              metric={"name": "pitch 振幅", "unit": "°"}),
     Scenario("disturb", 6, "瞬态扰动恢复", duration=6.0, init_L0=0.20,
