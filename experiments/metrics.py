@@ -84,17 +84,6 @@ def compute_metrics(data, scenario):
         m["vel_ss_err"] = float(np.mean(verr)) if verr.size else float("nan")
         m["headline"] = m["vel_ss_err"]
 
-    elif idx == 4:  # yaw 阶跃：转向期间 pitch 偏差
-        st = scenario.step_time
-        turn = _window(t, lo=st, hi=st + 3.0)
-        seg = np.abs(pitch_deg[turn])
-        m["pitch_dev_turn_deg"] = float(np.max(seg)) if seg.size else float("nan")
-        # yaw 稳态误差（deg）
-        yaw_des = np.degrees(data["yaw_target"][-1])
-        yss = _window(t, lo=scenario.duration - 2.0)
-        m["yaw_ss_err_deg"] = float(np.mean(np.abs(np.degrees(data["yaw"][yss]) - yaw_des)))
-        m["headline"] = m["pitch_dev_turn_deg"]
-
     elif idx == 5:  # 腿长正弦：pitch 振幅
         osc = _window(t, lo=scenario.settle)
         seg = pitch_deg[osc]

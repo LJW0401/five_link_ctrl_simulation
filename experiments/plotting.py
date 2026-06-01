@@ -81,8 +81,6 @@ def _plot_track_row(ax, scenario, data, color):
         _plot_sig(ax, data, "x", color)
     elif idx == 3:          # 速度
         _plot_sig(ax, data, "vx", color)
-    elif idx == 4:          # yaw
-        _plot_sig(ax, data, "yaw", color, scale=_DEG)
     elif idx == 5:          # 腿长
         _plot_sig(ax, data, "L0", color)
     elif idx == 6:          # 扰动工况中间行画 pitch 已在行1，这里画 Tp
@@ -91,7 +89,7 @@ def _plot_track_row(ax, scenario, data, color):
 
 _TRACK_YLABEL = {
     1: "位移 x (m)", 2: "位移 x (m)", 3: "速度 vx (m/s)",
-    4: "yaw (°)", 5: "腿长 L0 (m)", 6: "髋部力矩 Tp (N·m)",
+    5: "腿长 L0 (m)", 6: "髋部力矩 Tp (N·m)",
 }
 
 
@@ -118,8 +116,6 @@ def plot_scenario(scenario, runs, out_dir):
         ax_track.plot(t, ref["x_target"][rm], "k--", lw=0.9, label="目标")
     elif scenario.index == 3:
         ax_track.plot(t, ref["v_target"][rm], "k--", lw=0.9, label="目标")
-    elif scenario.index == 4:
-        ax_track.plot(t, np.degrees(ref["yaw_target"][rm]), "k--", lw=0.9, label="目标")
     elif scenario.index == 5:
         ax_track.plot(t, ref["L0_target"][rm], "k--", lw=0.9, label="目标")
 
@@ -236,7 +232,7 @@ def plot_summary(scenarios, metrics_table, out_dir):
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=9)
     ax.set_ylabel("头条指标（各工况量纲见表）")
-    ax.set_title("六类工况头条指标对比（PID / LQR / MPC）")
+    ax.set_title("各工况头条指标对比（PID / LQR / MPC）")
     ax.legend()
     ax.grid(True, axis="y", alpha=0.3)
     fig.tight_layout()

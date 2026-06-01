@@ -1,5 +1,5 @@
 """
-六类实验工况定义（对应论文第四章「实验工况设计」）。
+实验工况定义（对应论文第四章「实验工况设计」，yaw 阶跃已移除）。
 
 每个工况用一个 Scenario 描述：
   - apply(t, ctrl)   每个控制周期按时间设置控制器目标（位置/速度/yaw/腿长/pitch）
@@ -68,13 +68,6 @@ def _apply_vel_track(t, ctrl):
     ctrl.v_target = VEL_STEP_TARGET if t >= VEL_STEP_TIME else 0.0
 
 
-def _apply_yaw_step(t, ctrl):
-    ctrl.L0_target = 0.20
-    ctrl.x_target = 0.0
-    ctrl.v_target = 0.0
-    ctrl.yaw_target = (math.pi / 4.0) if t >= 1.0 else 0.0
-
-
 def _apply_leg_sine(t, ctrl):
     # L0 ∈ [0.15, 0.35] m，0.1 Hz 正弦；1 s 后开始摆动，留出起始平衡段
     ctrl.x_target = 0.0
@@ -112,9 +105,9 @@ SCENARIOS = [
              apply=_apply_vel_track, settle=1.0,
              step_time=VEL_STEP_TIME, step_target=VEL_STEP_TARGET,
              metric={"name": "稳态速度误差", "unit": "m/s"}),
-    Scenario("yaw_step", 4, "yaw 阶跃", duration=9.0, init_L0=0.20,
-             apply=_apply_yaw_step, settle=1.0, step_time=1.0,
-             metric={"name": "转向期间 pitch 偏差", "unit": "°"}),
+    # 工况 4（yaw 阶跃）已移除：yaw 由三控制器共用的同一 yaw PID 跟踪，
+    # 在 PID/LQR/MPC 间完全相同；且转向几乎不扰动平衡（转向期 pitch 偏差与工况1雷同），
+    # 不提供超出工况1的对比信息，故删去。工况编号保留原值（4 处留空）。
     Scenario("leg_sine", 5, "腿长动态变化", duration=22.0, init_L0=0.25,
              apply=_apply_leg_sine, settle=2.0,
              metric={"name": "pitch 振幅", "unit": "°"}),

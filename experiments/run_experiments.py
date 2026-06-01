@@ -34,7 +34,6 @@ SUMMARY_ROWS = [
     ("2 位置阶跃", "终值位置误差 / m", 2, "pos_ss_err", "{:.2f}"),
     ("2 位置阶跃", "pitch 反向超调 / °", 2, "pitch_reverse_overshoot_deg", "{:.1f}"),
     ("3 速度跟踪", "稳态误差 / (m·s⁻¹)", 3, "vel_ss_err", "{:.3f}"),
-    ("4 yaw 阶跃", "转向期间 pitch 偏差 / °", 4, "pitch_dev_turn_deg", "{:.2f}"),
     ("5 L0 正弦", "pitch RMS / °", 5, "pitch_rms_deg", "{:.2f}"),
     ("6 瞬态扰动", "pitch 峰值 / °", 6, "pitch_peak_after_deg", "{:.1f}"),
     ("6 瞬态扰动", "轮力矩饱和占比 / %", 6, "sat_frac_recovery_pct", "{:.0f}"),
@@ -88,7 +87,7 @@ def _write_summary_tables(scenarios, metrics_table):
     # ---- Markdown ----
     md_path = os.path.join(config.TABLE_DIR, "summary.md")
     with open(md_path, "w", encoding="utf-8") as f:
-        f.write("# 三类控制器六工况仿真指标汇总\n\n")
+        f.write(f"# 三类控制器 {len(scenarios)} 工况仿真指标汇总\n\n")
         f.write("| 工况 | 指标 | " + " | ".join(config.CONTROLLER_LABEL[c] for c in config.CONTROLLERS) + " |\n")
         f.write("|---|---|" + "---|" * len(config.CONTROLLERS) + "\n")
         for case, metric, idx, key, fmt in SUMMARY_ROWS:
