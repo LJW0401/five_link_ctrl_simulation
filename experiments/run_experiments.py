@@ -199,13 +199,14 @@ def main(argv=None):
         if s.index == 1:
             sp = plotting.plot_states(s, runs, config.FIG_DIR)
             print(f"       → 六状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
-        # 位置阶跃工况额外绘制 φ / θ / x / dx 四条曲线
-        if s.index == 2:
+        # 位置阶跃 / 速度跟踪工况额外绘制 φ / θ / x / dx 四条曲线
+        # （目标虚线：位置阶跃在 x 面板，速度跟踪在 dx 面板）
+        if s.index in (2, 3):
             specs = [
                 ("s_phi", "φ  机体倾角 (rad)", 1.0, None),
                 ("s_theta", "θ  虚拟腿摆角 (rad)", 1.0, None),
-                ("x", "x  位移 (m)", 1.0, "x_target"),
-                ("vx", "dx/dt  速度 (m/s)", 1.0, None),
+                ("x", "x  位移 (m)", 1.0, "x_target" if s.index == 2 else None),
+                ("vx", "dx/dt  速度 (m/s)", 1.0, "v_target" if s.index == 3 else None),
             ]
             sp = plotting.plot_state_curves(s, runs, config.FIG_DIR, specs, suffix="states")
             print(f"       → 状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
