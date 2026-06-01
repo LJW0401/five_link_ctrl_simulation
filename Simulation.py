@@ -1,4 +1,3 @@
-import argparse
 import mujoco
 import mujoco.viewer
 import numpy as np
@@ -12,15 +11,8 @@ from CommandServer import CommandServer, apply_to_controller
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Five-link leg-wheel robot simulation')
-    parser.add_argument('--model', default='MJCF/env.xml',
-                        help='MJCF entry file. e.g. MJCF/env.xml (STL mesh) or '
-                             'MJCF_primitive/env.xml (cylinder/box primitives)')
-    parser.add_argument('--fast', dest='realtime', action='store_false', default=True,
-                        help='禁用 realtime 节流，让仿真按 CPU 全速跑（默认 1× realtime）')
-    args = parser.parse_args()
 
-    GBC486 = LegWheelRobot(args.model)
+    GBC486 = LegWheelRobot('MJCF/env.xml')
     i = 0
     t1 = 1   # 传感器读取周期 (ms)
     t2 = 4   # 控制计算周期 (ms)
@@ -28,7 +20,7 @@ def main():
     keyboard = KeyboardController()
 
     # 选择控制器: CTRL_LQR 或 CTRL_PID
-    ctrl = create_controller(CTRL_LQR)
+    ctrl = create_controller(CTRL_MPC)
     # 监控用状态估计器（复用控制器的五连杆参数）
     leg_params = getattr(ctrl, 'leg_params', None)
     state = StateEstimator(leg_params)
@@ -38,13 +30,6 @@ def main():
     # 启动 UDP 指令服务器
     cmd_server = CommandServer(host="127.0.0.1", port=9000)
     cmd_server.start()
-
-    # realtime 节流：每个 mj_step 推进 model.opt.timestep（默认 1 ms 仿真时间），
-    # 用 perf_counter 精确补偿累计 wall-time 误差，避免单次 sleep 抖动累积
-    # --fast 关闭节流，让 CPU 全速跑
-    step_dt = GBC486.model.opt.timestep
-    loop_start = time.perf_counter()
-    print(f"时间模式: {'1× realtime' if args.realtime else '全速 (无节流)'}")
 
     while True:
         i = i + 1
@@ -93,14 +78,6 @@ def main():
             #     f"φ={state.body.phi:+.4f} dφ={state.body.phi_dot:+.3f} | "
             #     f"L0={state.leg[0].L0:.3f} whl={GBC486.wheel_torque[0]:+.2f}"
             # )
-
-        # 节流到 1× realtime：基于"应该到达的总 wall-time"补偿，自然纠偏累计漂移
-        # （如果某帧耗时超 step_dt，下一帧不会 sleep，自动追赶；不会出现累计提前）
-        if args.realtime:
-            target_wall = loop_start + i * step_dt
-            remaining = target_wall - time.perf_counter()
-            if remaining > 0:
-                time.sleep(remaining)
 
 
 if __name__ == '__main__':

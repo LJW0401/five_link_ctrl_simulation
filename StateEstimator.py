@@ -135,30 +135,20 @@ class StateEstimator:
         ]
 
         # --- 右腿正运动学 ---
-        # 关节被瞬时拽出 5-bar 工作空间时 VMC 会抛 ValueError；
-        # 沿用上一次解保持估计连续，避免控制循环整体崩溃。
-        try:
-            self.vmc_r.calc_forward_kinematics(
-                phi1=-joint_pos[1] + math.pi,
-                phi4=-joint_pos[0],
-            )
-        except ValueError:
-            print(f"[StateEstimator] 右腿 VMC 越界，沿用上一次解 "
-                  f"(phi1={-joint_pos[1] + math.pi:.3f}, phi4={-joint_pos[0]:.3f})")
+        self.vmc_r.calc_forward_kinematics(
+            phi1=-joint_pos[1] + math.pi,
+            phi4=-joint_pos[0],
+        )
 
         # print(f"VMC 右腿: phi1={self.vmc_r.phi1:.3f} rad, phi4={self.vmc_r.phi4:.3f} rad, ")
         # print(f"       L0={self.vmc_r.L0:.3f} m, phi0={self.vmc_r.phi0:.3f} rad, theta={self.vmc_r.theta:.3f} rad")
         # print(f"       dL0={self.vmc_r.d_L0:.3f} m/s, dPhi0={self.vmc_r.d_phi0:.3f} rad/s, dTheta={self.vmc_r.d_theta:.3f} rad/s")
 
         # --- 左腿正运动学 ---
-        try:
-            self.vmc_l.calc_forward_kinematics(
-                phi1=joint_pos[3] + math.pi,
-                phi4=joint_pos[2],
-            )
-        except ValueError:
-            print(f"[StateEstimator] 左腿 VMC 越界，沿用上一次解 "
-                  f"(phi1={joint_pos[3] + math.pi:.3f}, phi4={joint_pos[2]:.3f})")
+        self.vmc_l.calc_forward_kinematics(
+            phi1=joint_pos[3] + math.pi,
+            phi4=joint_pos[2],
+        )
 
         # print(f"VMC 左腿: phi1={self.vmc_l.phi1:.3f} rad, phi4={self.vmc_l.phi4:.3f} rad, ")
         # print(f"       L0={self.vmc_l.L0:.3f} m, phi0={self.vmc_l.phi0:.3f} rad, theta={self.vmc_l.theta:.3f} rad")

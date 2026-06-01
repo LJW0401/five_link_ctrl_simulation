@@ -47,27 +47,7 @@ ctrl = create_controller(CTRL_MPC)   # 或 CTRL_LQR / CTRL_PID
 | `MPCController.py` | MPC 状态反馈（condensed QP + 投影梯度）|
 | `calc_lqr_k.py` | 离线计算 LQR K 查找表，生成 `lqr_config.json` |
 | `calc_mpc_config.py` | 离线计算 MPC 模型表与终端代价，生成 `mpc_config.json` |
-| `MJCF/` | 原始 STL 机器人模型（`env.xml` 为入口） |
-| `MJCF_primitive/` | 原始构型的基础几何替身模型 |
-| `MJCF_rhombus/` | 菱形对称 5-bar 几何替身模型 |
-
----
-
-## 模型构型
-
-仓库中保留了 3 套 MuJoCo 模型，入口文件均为各目录下的 `env.xml`。
-
-| 模型目录 | 构型 | 说明 |
-|---|---|---|
-| `MJCF/` | 原始 GBC486 STL 装配构型 | 直接加载 `base_link.STL`、`AG.STL`、`GH.STL`、`AB.STL` 等网格文件。每条腿保留原始五连杆布局，前后 hip 在车身上有偏置，上下支链存在交叉/折叠关系。 |
-| `MJCF_primitive/` | 原始构型的几何替身 | 用 `box` / `cylinder` 等基础几何体替代 STL mesh，但保留与 `MJCF/robot.xml` 基本一致的 body 树、joint、actuator、sensor、site 和 equality 命名。适合调试动力学、碰撞和控制逻辑。 |
-| `MJCF_rhombus/` | 对称菱形 5-bar 几何替身 | 当前分支新增的简化构型。每条腿由前后两条二连杆支链组成，foot/wheel 位于菱形下顶点；右腿拓扑为 `AG -> GH -> wheel_right` 与 `AB -> BE -> F`，通过 equality 在足端闭合。 |
-
-三者的主要区别：
-
-- `MJCF/`：最接近原始 CAD/URDF 的 STL 装配模型。
-- `MJCF_primitive/`：不改变原始拓扑，只把可视和碰撞几何简化为基础体。
-- `MJCF_rhombus/`：改变腿部几何为更规整的菱形 5-bar，参数为 `L1=L4=0.15 m`、`L2=L3=0.24 m`、hip 间距 `L5=0.10 m`，默认腿长 `L0=0.30 m`。
+| `MJCF/` | 机器人模型（`env.xml` 为入口） |
 
 ---
 

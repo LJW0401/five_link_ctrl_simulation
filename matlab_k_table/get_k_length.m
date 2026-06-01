@@ -21,13 +21,13 @@ function [K, params] = get_k_length(leg_length)
     R1=0.088;                         %驱动轮半径 R
     L1=leg_length/2;                  %摆杆重心到驱动轮轴距离
     LM1=leg_length/2;                 %摆杆重心到其转轴距离
-    l1=-0.05;                         %机体质心距 hip 转轴距离 l（base_box 沿 z 偏移，为负）
+    l1=0.03;                          %机体质心距 hip 转轴距离 l（与 py 中 l 取值一致）
     mw1=0.322;                        %单个驱动轮质量 mw
-    mp1=3.0;                          %单腿质量 mp（4 根连杆，不含轮子）
+    mp1=2.751;                        %单腿质量 mp（4 根连杆，不含轮子）
     M1=8.4;                           %机体质量 M
     Iw1=mw1*R1^2;                     %驱动轮转动惯量
     Ip1=mp1*((L1+LM1)^2+0.05^2)/12.0; %摆杆转动惯量（与 py 中 Ip 同式）
-    IM1=0.0473;                       %机体绕 pitch 轴转动惯量 IM（与 py 中 IM 取值一致）
+    IM1=0.112177;                     %机体绕 pitch 轴转动惯量 IM（与 py 中 IM 取值一致）
 
     
     NM = M*diff(x + (L + LM )*sin(theta)-l*sin(phi),t,2);
@@ -53,7 +53,7 @@ function [K, params] = get_k_length(leg_length)
     B=double(B);
     
     % Q/R 与 calc_lqr_k.py 的 DEFAULT_Q / DEFAULT_R 保持一致
-    Qvec=[50 1 100 100 2000 10];     %theta d_theta x d_x phi d_phi
+    Qvec=[50 1 800 100 7000 1];      %theta d_theta x d_x phi d_phi
     Rvec=[20 1];                     %T(wheel) Tp(hip)
     Q=diag(Qvec);
     R=diag(Rvec);
