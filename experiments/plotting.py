@@ -5,6 +5,8 @@
   行1 pitch (°)；行2 工况相关跟踪量；行3 驱动轮力矩 (N·m, 含 ±4 饱和线)。
 另输出一张各工况头条指标的汇总柱状图。
 中文标签使用系统可用的 Noto CJK 字体。
+噪声大的信号（力矩、角速度）显示时做零相位低通平滑（原始信号淡色叠底），
+仅影响图表，不改 CSV 原始数据与控制行为。
 """
 
 import os
@@ -14,8 +16,24 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
+from scipy.signal import butter, filtfilt
 
 from . import config
+
+# 噪声大、需要显示低通平滑的信号（驱动轮/髋部力矩、角速度状态）。
+# 仅影响绘图：滤波后画为主线，原始信号以淡色叠底，保证图表诚实。
+NOISY_SIGNALS = {"T_right", "T_left", "Tp_r", "Tp_l", "s_dtheta", "s_dphi"}
+_DEG = 180.0 / np.pi
+
+
+def _lpf(y):
+    """零相位低通（Butterworth + filtfilt），用于显示平滑。"""
+    fs = 1.0 / config.DT_CTRL
+    wn = config.PLOT_LPF_CUTOFF_HZ / (0.5 * fs)
+    b, a = butter(2, min(wn, 0.99))
+    if len(y) <= 12:
+        return y
+    return filtfilt(b, a, y)
 
 
 def set_cjk_font():
@@ -36,21 +54,31 @@ def _m(d):
     return d["t"] >= config.PLOT_START_S
 
 
+def _plot_sig(ax, d, key, color, lw=1.2, label=None, scale=1.0):
+    """画单条信号；若属噪声大信号则零相位低通平滑为主线、原始淡色叠底。"""
+    m = _m(d)
+    t = d["t"][m]
+    y = d[key] * scale
+    if key in NOISY_SIGNALS:
+        ax.plot(t, y[m], color=color, lw=0.5, alpha=0.18)        # 原始（叠底）
+        ax.plot(t, _lpf(y)[m], color=color, lw=lw, label=label)  # 低通平滑（主线）
+    else:
+        ax.plot(t, y[m], color=color, lw=lw, label=label)
+
+
 # 工况 → 中间行（跟踪量）绘制方式
 def _plot_track_row(ax, scenario, data, color):
-    m = _m(data)
-    t = data["t"][m]
     idx = scenario.index
     if idx in (1, 2):       # 位置
-        ax.plot(t, data["x"][m], color=color, lw=1.2)
+        _plot_sig(ax, data, "x", color)
     elif idx == 3:          # 速度
-        ax.plot(t, data["vx"][m], color=color, lw=1.2)
+        _plot_sig(ax, data, "vx", color)
     elif idx == 4:          # yaw
-        ax.plot(t, np.degrees(data["yaw"][m]), color=color, lw=1.2)
+        _plot_sig(ax, data, "yaw", color, scale=_DEG)
     elif idx == 5:          # 腿长
-        ax.plot(t, data["L0"][m], color=color, lw=1.2)
+        _plot_sig(ax, data, "L0", color)
     elif idx == 6:          # 扰动工况中间行画 pitch 已在行1，这里画 Tp
-        ax.plot(t, data["Tp_r"][m], color=color, lw=1.2)
+        _plot_sig(ax, data, "Tp_r", color)
 
 
 _TRACK_YLABEL = {
@@ -70,11 +98,9 @@ def plot_scenario(scenario, runs, out_dir):
         data = runs[ck]
         c = config.CONTROLLER_COLOR[ck]
         lbl = config.CONTROLLER_LABEL[ck]
-        m = _m(data)
-        t = data["t"][m]
-        ax_pitch.plot(t, np.degrees(data["pitch"][m]), color=c, lw=1.2, label=lbl)
+        _plot_sig(ax_pitch, data, "pitch", c, lw=1.2, label=lbl, scale=_DEG)
         _plot_track_row(ax_track, scenario, data, c)
-        ax_tor.plot(t, data["T_right"][m], color=c, lw=1.0, label=lbl)
+        _plot_sig(ax_tor, data, "T_right", c, lw=1.0, label=lbl)
 
     # 参考线 / 目标线（取任一条 run 的目标时序）
     ref = next(iter(runs.values()))
@@ -133,10 +159,8 @@ def plot_states(scenario, runs, out_dir):
         for ck in config.CONTROLLERS:
             if ck not in runs:
                 continue
-            d = runs[ck]
-            m = _m(d)
-            ax.plot(d["t"][m], d[key][m], color=config.CONTROLLER_COLOR[ck],
-                    lw=1.0, label=config.CONTROLLER_LABEL[ck])
+            _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
+                      lw=1.0, label=config.CONTROLLER_LABEL[ck])
         ax.axhline(0.0, color="0.6", ls="--", lw=0.8)  # 目标值均为 0
         ax.set_ylabel(ylabel)
         ax.grid(True, alpha=0.3)

@@ -33,6 +33,9 @@ NOISE_SEED = 20260602  # 固定随机种子，保证可复现
 # ---- 绘图起始时刻：裁掉前若干秒（只影响图，不影响 CSV 与指标）----
 PLOT_START_S = 2.0
 
+# ---- 绘图低通滤波：仅对噪声大的信号做显示平滑（零相位），不改 CSV/控制行为 ----
+PLOT_LPF_CUTOFF_HZ = 8.0   # 截止频率 (Hz)，控制采样率 250 Hz
+
 # ---- 控制器清单 ----
 CONTROLLERS = ["pid", "lqr", "mpc"]
 CONTROLLER_LABEL = {"pid": "PID", "lqr": "LQR", "mpc": "MPC"}
