@@ -30,6 +30,9 @@ WARMUP_S = 3.0
 IMU_NOISE_STD = 0.01
 NOISE_SEED = 20260602  # 固定随机种子，保证可复现
 
+# ---- 绘图起始时刻：裁掉前若干秒（只影响图，不影响 CSV 与指标）----
+PLOT_START_S = 2.0
+
 # ---- 控制器清单 ----
 CONTROLLERS = ["pid", "lqr", "mpc"]
 CONTROLLER_LABEL = {"pid": "PID", "lqr": "LQR", "mpc": "MPC"}

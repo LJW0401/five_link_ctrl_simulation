@@ -31,20 +31,26 @@ def set_cjk_font():
     plt.rcParams["figure.dpi"] = 130
 
 
+def _m(d):
+    """绘图时间掩码：只取 t >= PLOT_START_S 的部分。"""
+    return d["t"] >= config.PLOT_START_S
+
+
 # 工况 → 中间行（跟踪量）绘制方式
 def _plot_track_row(ax, scenario, data, color):
-    t = data["t"]
+    m = _m(data)
+    t = data["t"][m]
     idx = scenario.index
     if idx in (1, 2):       # 位置
-        ax.plot(t, data["x"], color=color, lw=1.2)
+        ax.plot(t, data["x"][m], color=color, lw=1.2)
     elif idx == 3:          # 速度
-        ax.plot(t, data["vx"], color=color, lw=1.2)
+        ax.plot(t, data["vx"][m], color=color, lw=1.2)
     elif idx == 4:          # yaw
-        ax.plot(t, np.degrees(data["yaw"]), color=color, lw=1.2)
+        ax.plot(t, np.degrees(data["yaw"][m]), color=color, lw=1.2)
     elif idx == 5:          # 腿长
-        ax.plot(t, data["L0"], color=color, lw=1.2)
+        ax.plot(t, data["L0"][m], color=color, lw=1.2)
     elif idx == 6:          # 扰动工况中间行画 pitch 已在行1，这里画 Tp
-        ax.plot(t, data["Tp_r"], color=color, lw=1.2)
+        ax.plot(t, data["Tp_r"][m], color=color, lw=1.2)
 
 
 _TRACK_YLABEL = {
@@ -64,22 +70,24 @@ def plot_scenario(scenario, runs, out_dir):
         data = runs[ck]
         c = config.CONTROLLER_COLOR[ck]
         lbl = config.CONTROLLER_LABEL[ck]
-        t = data["t"]
-        ax_pitch.plot(t, np.degrees(data["pitch"]), color=c, lw=1.2, label=lbl)
+        m = _m(data)
+        t = data["t"][m]
+        ax_pitch.plot(t, np.degrees(data["pitch"][m]), color=c, lw=1.2, label=lbl)
         _plot_track_row(ax_track, scenario, data, c)
-        ax_tor.plot(t, data["T_right"], color=c, lw=1.0, label=lbl)
+        ax_tor.plot(t, data["T_right"][m], color=c, lw=1.0, label=lbl)
 
     # 参考线 / 目标线（取任一条 run 的目标时序）
     ref = next(iter(runs.values()))
-    t = ref["t"]
+    rm = _m(ref)
+    t = ref["t"][rm]
     if scenario.index == 2:
-        ax_track.plot(t, ref["x_target"], "k--", lw=0.9, label="目标")
+        ax_track.plot(t, ref["x_target"][rm], "k--", lw=0.9, label="目标")
     elif scenario.index == 3:
-        ax_track.plot(t, ref["v_target"], "k--", lw=0.9, label="目标")
+        ax_track.plot(t, ref["v_target"][rm], "k--", lw=0.9, label="目标")
     elif scenario.index == 4:
-        ax_track.plot(t, np.degrees(ref["yaw_target"]), "k--", lw=0.9, label="目标")
+        ax_track.plot(t, np.degrees(ref["yaw_target"][rm]), "k--", lw=0.9, label="目标")
     elif scenario.index == 5:
-        ax_track.plot(t, ref["L0_target"], "k--", lw=0.9, label="目标")
+        ax_track.plot(t, ref["L0_target"][rm], "k--", lw=0.9, label="目标")
 
     # 扰动窗口阴影
     if scenario._disturbance is not None and scenario.step_time is not None:
@@ -113,11 +121,11 @@ def plot_states(scenario, runs, out_dir):
     """六维状态反馈量 x=(θ,θ̇,x,ẋ,φ,φ̇) 随时间变化（PID/LQR/MPC 同图对比）。"""
     specs = [
         ("s_theta", "θ  虚拟腿摆角 (rad)"),
-        ("s_dtheta", "θ̇  摆角速度 (rad/s)"),
+        ("s_dtheta", "dθ/dt  摆角速度 (rad/s)"),
         ("s_x", "x  位移 (m)"),
-        ("s_dx", "ẋ  速度 (m/s)"),
+        ("s_dx", "dx/dt  速度 (m/s)"),
         ("s_phi", "φ  机体倾角 (=pitch, rad)"),
-        ("s_dphi", "φ̇  倾角速度 (rad/s)"),
+        ("s_dphi", "dφ/dt  倾角速度 (rad/s)"),
     ]
     fig, axes = plt.subplots(3, 2, figsize=(11, 8.5), sharex=True)
     axes = axes.ravel()
@@ -126,7 +134,8 @@ def plot_states(scenario, runs, out_dir):
             if ck not in runs:
                 continue
             d = runs[ck]
-            ax.plot(d["t"], d[key], color=config.CONTROLLER_COLOR[ck],
+            m = _m(d)
+            ax.plot(d["t"][m], d[key][m], color=config.CONTROLLER_COLOR[ck],
                     lw=1.0, label=config.CONTROLLER_LABEL[ck])
         ax.axhline(0.0, color="0.6", ls="--", lw=0.8)  # 目标值均为 0
         ax.set_ylabel(ylabel)
