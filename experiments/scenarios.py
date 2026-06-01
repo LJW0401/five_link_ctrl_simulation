@@ -86,9 +86,12 @@ def _apply_disturb(t, ctrl):
     ctrl.yaw_target = 0.0
 
 
+# 瞬态扰动参数：t=4s 起施加 30N 水平推力，持续 0.1s
+DISTURB_TIME = 4.0
+
+
 def _disturb_push(t):
-    # 30 N 水平推力，作用区间 [2.0, 2.1] s（持续 0.1 s）
-    return 30.0 if 2.0 <= t < 2.1 else 0.0
+    return 30.0 if DISTURB_TIME <= t < DISTURB_TIME + 0.1 else 0.0
 
 
 # ---------- 工况清单 ----------
@@ -111,9 +114,9 @@ SCENARIOS = [
     Scenario("leg_sine", 5, "腿长动态变化", duration=22.0, init_L0=0.20,
              apply=_apply_leg_sine, settle=2.0,
              metric={"name": "pitch 振幅", "unit": "°"}),
-    Scenario("disturb", 6, "瞬态扰动恢复", duration=6.0, init_L0=0.20,
+    Scenario("disturb", 6, "瞬态扰动恢复", duration=8.0, init_L0=0.20,
              apply=_apply_disturb, disturbance=_disturb_push,
-             settle=1.0, step_time=2.0,
+             settle=1.0, step_time=DISTURB_TIME,
              metric={"name": "pitch 峰值", "unit": "°"}),
 ]
 
