@@ -79,6 +79,13 @@ class LQRBalanceController:
 
         self.k_table = KTable(config["L0_values"], config["K_table"])
         self.leg_params = config.get("leg_params", None)
+
+        # K 阵系数矩阵 (2x6)，与 K[2][6] 一一对应，逐元素相乘用于在线调参
+        # 行: [T 行, Tp 行]，列: [theta, d_theta, x, d_x, phi, d_phi]
+        self.k_scale = [
+            [+1.0, +1.0, +1.0, +1.0, -1.0, -1.0],
+            [+1.0, +1.0, +1.0, +1.0, -1.0, -1.0],
+        ]
         L0_range = config["L0_range"]
         n = len(config["L0_values"])
         print(f"[LQR] 加载K矩阵查找表: {n}点, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
@@ -148,18 +155,21 @@ class LQRBalanceController:
             leg = self.state.leg[i]
             k = self.k_table.get_k(leg.L0)
 
+            # 逐元素乘上 K 系数矩阵
+            k = [[k[r][c] * self.k_scale[r][c] for c in range(6)] for r in range(2)]
+
             # phi = -pitch，因此 -phi = pitch；误差 = pitch - pitch_target
             x = [
                 leg.Theta,
                 leg.dTheta,
                 (body_x - self.x_target),
                 (body_vx - self.v_target),
-                -phi - self.pitch_target,
-                -phi_dot,
+                phi,
+                phi_dot,
             ]
 
             T, Tp = calc_lqr(k, x)
-            wheel_torque[i] = -max(-4.0, min(4.0, T))
+            wheel_torque[i] = max(-4.0, min(4.0, T))
 
             if i == 0:
                 self.Tp_r = Tp
