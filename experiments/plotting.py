@@ -24,7 +24,8 @@ from . import config
 # 以及机体倾角(φ/pitch)与虚拟腿摆角(θ)。
 # 仅影响绘图：滤波后画为主线，原始信号以淡色叠底，保证图表诚实。
 NOISY_SIGNALS = {"T_right", "T_left", "Tp_r", "Tp_l",
-                 "s_theta", "s_dtheta", "s_phi", "s_dphi", "pitch"}
+                 "s_theta", "s_dtheta", "s_phi", "s_dphi", "pitch",
+                 "s_dx", "vx"}
 # 单独指定更强滤波（更低截止频率）的信号：倾角角速度 dφ/dt
 SIGNAL_CUTOFF_HZ = {"s_dphi": config.PLOT_LPF_CUTOFF_STRONG_HZ}
 _DEG = 180.0 / np.pi
