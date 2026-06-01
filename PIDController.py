@@ -44,7 +44,7 @@ class PIDBalanceController:
     """动态 IK + 关节 PID + 倒立摆轮子控制"""
 
     def __init__(self, leg_params=None):
-        self.L0_target = 0.30  # MJCF_rhombus 默认零位 L0=0.30 m
+        self.L0_target = 0.25
         self.theta_target = 0.0
 
         self.theta_amplitude = 0.0

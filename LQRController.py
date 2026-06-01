@@ -1,8 +1,8 @@
 """
 LQR 状态反馈控制器
 
-启动时从 lqr_config.json 加载各分量的多项式系数，
-运行时根据当前腿长 L0 代入多项式得到 K(L0)。
+启动时从 lqr_config.json 加载二次多项式系数，
+运行时根据当前腿长 L0 计算 K = a2*L0² + a1*L0 + a0。
 
 状态向量 x[6]: [theta, d_theta, x, d_x, phi, d_phi]
 控制输出: T (轮子力矩), Tp (髋关节力矩)
@@ -16,35 +16,35 @@ from StateEstimator import StateEstimator, IMUData, MotorData
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "lqr_config.json")
 
 
-class KPolyTable:
-    """K 矩阵多项式拟合表：每个分量是 L0 的多项式，运行时按 L0 代入求值"""
+class KTable:
+    """K 矩阵查找表，线性插值"""
 
-    def __init__(self, K_poly_coef, L0_min, L0_max):
-        # K_poly_coef[i][j] = 多项式系数（高次在前，长度 = poly_order+1）
-        self.K_poly_coef = K_poly_coef
-        self.L0_min = L0_min
-        self.L0_max = L0_max
-
-    @staticmethod
-    def _polyval(coef, x):
-        """Horner 法求多项式值（coef 高次在前，与 numpy.polyval 一致）"""
-        y = 0.0
-        for c in coef:
-            y = y * x + c
-        return y
+    def __init__(self, L0_values, K_table):
+        self.L0_values = L0_values
+        self.K_table = K_table  # list of list: [n][2][6]
+        self.n = len(L0_values)
+        self.L0_min = L0_values[0]
+        self.L0_max = L0_values[-1]
 
     def get_k(self, L0):
-        """根据 L0 代入多项式获取 K[2][6]，超出标定区间时钳位到端点腿长"""
-        # 钳位：拟合多项式在标定区间外会发散，外推前先把 L0 限制到区间内
-        if L0 < self.L0_min:
-            L0 = self.L0_min
-        elif L0 > self.L0_max:
-            L0 = self.L0_max
+        """根据 L0 线性插值获取 K[2][6]"""
+        # 钳位
+        if L0 <= self.L0_min:
+            return [row[:] for row in self.K_table[0]]
+        if L0 >= self.L0_max:
+            return [row[:] for row in self.K_table[-1]]
 
+        # 找区间
+        step = (self.L0_max - self.L0_min) / (self.n - 1)
+        idx = int((L0 - self.L0_min) / step)
+        idx = min(idx, self.n - 2)
+
+        # 插值
+        t = (L0 - self.L0_values[idx]) / (self.L0_values[idx + 1] - self.L0_values[idx])
         k = [[0.0] * 6 for _ in range(2)]
         for i in range(2):
             for j in range(6):
-                k[i][j] = self._polyval(self.K_poly_coef[i][j], L0)
+                k[i][j] = (1 - t) * self.K_table[idx][i][j] + t * self.K_table[idx + 1][i][j]
         return k
 
 
@@ -61,7 +61,7 @@ class LQRBalanceController:
 
     控制流程:
       1. StateEstimator 获取状态
-      2. 多项式拟合表按 L0 求值获取 K(L0)
+      2. 查找表线性插值获取 K(L0)
       3. LQR 状态反馈 → T, Tp
       4. PID 控制腿长 → F0
       5. VMC 雅可比 (F0, Tp) → 关节力矩
@@ -77,16 +77,14 @@ class LQRBalanceController:
         with open(config_path, "r") as f:
             config = json.load(f)
 
-        L0_range = config["L0_range"]
-        self.k_table = KPolyTable(config["K_poly_coef"], L0_range["min"], L0_range["max"])
+        self.k_table = KTable(config["L0_values"], config["K_table"])
         self.leg_params = config.get("leg_params", None)
-        order = config["poly_order"]
-        print(f"[LQR] 加载K矩阵{order}阶多项式拟合: L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
+        L0_range = config["L0_range"]
+        n = len(config["L0_values"])
+        print(f"[LQR] 加载K矩阵查找表: {n}点, L0 ∈ [{L0_range['min']:.2f}, {L0_range['max']:.2f}]m")
 
         # 目标值
-        # MJCF_rhombus 默认零位 L0 = 0.30 m，控制器以同样的腿长作为平衡目标，
-        # 避免上电瞬间 PID 命令大幅压腿、把 5-bar 拖出工作空间。
-        self.L0_target = 0.20
+        self.L0_target = 0.2
         self.x_target = 0.0
         self.v_target = 0.0
         self.yaw_target = 0.0
@@ -169,7 +167,7 @@ class LQRBalanceController:
                 self.Tp_l = Tp
 
         # --- yaw PID ---
-        yaw_correction = 0#self.pid_yaw.calc(self.state.body.y, self.yaw_target)
+        yaw_correction = self.pid_yaw.calc(self.state.body.y, self.yaw_target)
         wheel_torque[0] += yaw_correction
         wheel_torque[1] -= yaw_correction
 
