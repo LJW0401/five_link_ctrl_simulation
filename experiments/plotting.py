@@ -184,6 +184,43 @@ def plot_states(scenario, runs, out_dir):
     return path
 
 
+def plot_state_curves(scenario, runs, out_dir, specs, suffix="states"):
+    """
+    绘制指定状态量子集随时间变化（PID/LQR/MPC 同图对比）。
+    specs: list of (key, ylabel, scale, target_key)；target_key 为 None 时画 0 参考线，
+           否则取该目标时序画虚线（用于阶跃类工况）。
+    """
+    n = len(specs)
+    rows = (n + 1) // 2
+    fig, axes = plt.subplots(rows, 2, figsize=(11, 3.0 * rows + 0.5), sharex=True)
+    axes = axes.ravel()
+    ref = next(iter(runs.values()))
+    rm = _m(ref)
+    for ax, (key, ylabel, scale, tgt) in zip(axes, specs):
+        for ck in config.CONTROLLERS:
+            if ck not in runs:
+                continue
+            _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
+                      lw=1.0, label=config.CONTROLLER_LABEL[ck], scale=scale)
+        if tgt is not None:
+            ax.plot(ref["t"][rm], ref[tgt][rm] * scale, "k--", lw=0.9, label="目标")
+        else:
+            ax.axhline(0.0, color="0.6", ls="--", lw=0.8)
+        ax.set_ylabel(ylabel)
+        ax.grid(True, alpha=0.3)
+    for ax in axes[n:]:        # 隐藏多余子图
+        ax.set_visible(False)
+    axes[0].legend(loc="best", fontsize=9, ncol=3)
+    for ax in axes[max(0, n - 2):n]:
+        ax.set_xlabel("时间 t (s)")
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）状态量随时间变化", fontsize=13)
+    fig.tight_layout(rect=(0, 0, 1, 0.98))
+    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_{suffix}.png")
+    fig.savefig(path)
+    plt.close(fig)
+    return path
+
+
 def plot_summary(scenarios, metrics_table, out_dir):
     """各工况头条指标的分组柱状图。metrics_table[ck][scenario.index] -> headline。"""
     labels = [f"{s.index}\n{s.title}" for s in scenarios]

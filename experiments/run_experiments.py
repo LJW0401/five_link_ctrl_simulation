@@ -196,6 +196,16 @@ def main(argv=None):
         if s.index == 1:
             sp = plotting.plot_states(s, runs, config.FIG_DIR)
             print(f"       → 六状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
+        # 位置阶跃工况额外绘制 φ / θ / x / dx 四条曲线
+        if s.index == 2:
+            specs = [
+                ("s_phi", "φ  机体倾角 (rad)", 1.0, None),
+                ("s_theta", "θ  虚拟腿摆角 (rad)", 1.0, None),
+                ("x", "x  位移 (m)", 1.0, "x_target"),
+                ("vx", "dx/dt  速度 (m/s)", 1.0, None),
+            ]
+            sp = plotting.plot_state_curves(s, runs, config.FIG_DIR, specs, suffix="states")
+            print(f"       → 状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
 
     # 汇总（仅当三控制器全跑时才出汇总图/表）
     if set(controllers) == set(config.CONTROLLERS) and len(scenarios) == len(get_scenarios()):
