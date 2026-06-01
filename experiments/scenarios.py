@@ -44,8 +44,8 @@ def _apply_balance(t, ctrl):
     ctrl.yaw_target = 0.0
 
 
-# 位置阶跃参数：t=10s 时阶跃到 5m
-POS_STEP_TIME = 10.0
+# 位置阶跃参数：t=20s 时阶跃到 5m
+POS_STEP_TIME = 20.0
 POS_STEP_TARGET = 5.0
 
 
@@ -98,7 +98,7 @@ SCENARIOS = [
     Scenario("balance", 1, "平衡保持", duration=20.0, init_L0=0.20,
              apply=_apply_balance, settle=3.0,
              metric={"name": "pitch RMS", "unit": "°"}),
-    Scenario("pos_step", 2, "位置阶跃", duration=30.0, init_L0=0.20,
+    Scenario("pos_step", 2, "位置阶跃", duration=40.0, init_L0=0.20,
              apply=_apply_pos_step, settle=1.0,
              step_time=POS_STEP_TIME, step_target=POS_STEP_TARGET,
              metric={"name": "上升时间", "unit": "s"}),

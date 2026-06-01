@@ -151,10 +151,11 @@ def _write_readme(scenarios):
         f.write("- **平衡/姿态类工况**：LQR 最优（pitch RMS ≈1.5°），MPC 次之（≈5°），"
                 "PID 明显最差（稳态有大 pitch 偏置）。这一相对优劣与论文论点一致，"
                 "但绝对量级远大于表 4 的乐观估计值。\n")
-        f.write("- **位置/速度跟踪较弱**：三类控制器都能保持平衡，但位置外环很弱——"
-                "即使目标置零整车也会缓慢溜车。位置阶跃（t=10s 阶跃到 5m）下无一稳定到目标"
-                "（上升时间记为「—」）：LQR 终值最接近（误差约 1.5m），MPC 欠冲，"
-                "PID 剧烈振荡（±6m）后发散；速度稳态误差也偏大。\n")
+        from .scenarios import POS_STEP_TIME, POS_STEP_TARGET
+        f.write(f"- **位置/速度跟踪较弱**：三类控制器都能保持平衡，但位置外环很弱——"
+                f"即使目标置零整车也会缓慢溜车。位置阶跃（t={POS_STEP_TIME:.0f}s 阶跃到 {POS_STEP_TARGET:.0f}m）"
+                f"下普遍难以稳定到目标：终值位置误差以 LQR 最小、PID 因长时间溜车+大幅振荡而最差；"
+                f"速度稳态误差也偏大。具体数值见 summary.md。\n")
         f.write("- **腿长动态工况（工况 5）最苛刻**：仅 PID 跟住了 L0 正弦（±22° pitch 摆动）；"
                 "LQR 卡死在约 −27.5° 倾角、MPC 直接倒伏。详见稳定性矩阵。\n")
         f.write("- 指标基于 MuJoCo 无噪声真实状态统计；倒伏（稳态 |pitch|>45°）已在 summary.md 标注。\n")
