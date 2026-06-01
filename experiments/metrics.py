@@ -78,7 +78,7 @@ def compute_metrics(data, scenario):
 
     elif idx == 3:  # 速度跟踪：稳态速度误差
         st = scenario.step_time
-        v_des = 0.3
+        v_des = scenario.step_target
         ss = _window(t, lo=st + 3.0)
         verr = np.abs(data["vx"][ss] - v_des)
         m["vel_ss_err"] = float(np.mean(verr)) if verr.size else float("nan")

@@ -56,10 +56,16 @@ def _apply_pos_step(t, ctrl):
     ctrl.x_target = POS_STEP_TARGET if t >= POS_STEP_TIME else 0.0
 
 
+# 速度跟踪参数（与位置阶跃同样改法）：t=20s 时阶跃到 1 m/s
+# （×10 的 3 m/s 会使 LQR 倒伏发散，取中间值 1 m/s 保留可比性）
+VEL_STEP_TIME = 20.0
+VEL_STEP_TARGET = 1.0
+
+
 def _apply_vel_track(t, ctrl):
     ctrl.L0_target = 0.20
     ctrl.yaw_target = 0.0
-    ctrl.v_target = 0.3 if t >= 1.0 else 0.0
+    ctrl.v_target = VEL_STEP_TARGET if t >= VEL_STEP_TIME else 0.0
 
 
 def _apply_yaw_step(t, ctrl):
@@ -102,8 +108,9 @@ SCENARIOS = [
              apply=_apply_pos_step, settle=1.0,
              step_time=POS_STEP_TIME, step_target=POS_STEP_TARGET,
              metric={"name": "上升时间", "unit": "s"}),
-    Scenario("vel_track", 3, "速度跟踪", duration=9.0, init_L0=0.20,
-             apply=_apply_vel_track, settle=1.0, step_time=1.0,
+    Scenario("vel_track", 3, "速度跟踪", duration=40.0, init_L0=0.20,
+             apply=_apply_vel_track, settle=1.0,
+             step_time=VEL_STEP_TIME, step_target=VEL_STEP_TARGET,
              metric={"name": "稳态速度误差", "unit": "m/s"}),
     Scenario("yaw_step", 4, "yaw 阶跃", duration=9.0, init_L0=0.20,
              apply=_apply_yaw_step, settle=1.0, step_time=1.0,
