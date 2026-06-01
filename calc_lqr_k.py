@@ -75,14 +75,14 @@ def dynamics(state, ctrl, leg_length, params):
 
     c_th_ddth = Ip + ((M_v * (L + LM) + mp_v * L) * st * L + M_v * (L + LM) * st * LM) * st \
                 + ((M_v * (L + LM) + mp_v * L) * ct * L + M_v * (L + LM) * ct * LM) * ct
-    c_th_ddx  = -((M_v + mp_v) * L + M_v * LM) * ct
-    c_th_ddph = (M_v * l_v * sp * L + M_v * l_v * sp * LM) * st \
-                + (M_v * l_v * cp * L + M_v * l_v * cp * LM) * ct
+    c_th_ddx  = ((M_v + mp_v) * L + M_v * LM) * ct
+    c_th_ddph = -((M_v * l_v * sp * L + M_v * l_v * sp * LM) * st
+                  + (M_v * l_v * cp * L + M_v * l_v * cp * LM) * ct)
 
     rhs_th = ((P_base * L + PM_base * LM) * st - (N_nl * L + NM_nl * LM) * ct - T + Tp)
 
-    c_ph_ddth = M_v * (L + LM) * ct * l_v * cp - M_v * (L + LM) * st * l_v * sp
-    c_ph_ddx  = M_v * l_v * cp
+    c_ph_ddth = -(M_v * (L + LM) * ct * l_v * cp - M_v * (L + LM) * st * l_v * sp)
+    c_ph_ddx  = -M_v * l_v * cp
     c_ph_ddph = p["IM"] + M_v * l_v ** 2
 
     rhs_ph = Tp + NM_nl * l_v * cp + PM_base * l_v * sp
