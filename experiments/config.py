@@ -34,7 +34,8 @@ NOISE_SEED = 20260602  # 固定随机种子，保证可复现
 PLOT_START_S = 2.0
 
 # ---- 绘图低通滤波：仅对噪声大的信号做显示平滑（零相位），不改 CSV/控制行为 ----
-PLOT_LPF_CUTOFF_HZ = 8.0   # 截止频率 (Hz)，控制采样率 250 Hz
+PLOT_LPF_CUTOFF_HZ = 8.0          # 默认截止频率 (Hz)，控制采样率 250 Hz
+PLOT_LPF_CUTOFF_STRONG_HZ = 3.0   # 强滤波截止频率 (Hz)，用于倾角角速度 dφ/dt
 
 # ---- 控制器清单 ----
 CONTROLLERS = ["pid", "lqr", "mpc"]

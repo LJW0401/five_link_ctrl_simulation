@@ -20,16 +20,22 @@ from scipy.signal import butter, filtfilt
 
 from . import config
 
-# 噪声大、需要显示低通平滑的信号（驱动轮/髋部力矩、角速度状态）。
+# 噪声大、需要显示低通平滑的信号：驱动轮/髋部力矩、角速度状态，
+# 以及机体倾角(φ/pitch)与虚拟腿摆角(θ)。
 # 仅影响绘图：滤波后画为主线，原始信号以淡色叠底，保证图表诚实。
-NOISY_SIGNALS = {"T_right", "T_left", "Tp_r", "Tp_l", "s_dtheta", "s_dphi"}
+NOISY_SIGNALS = {"T_right", "T_left", "Tp_r", "Tp_l",
+                 "s_theta", "s_dtheta", "s_phi", "s_dphi", "pitch"}
+# 单独指定更强滤波（更低截止频率）的信号：倾角角速度 dφ/dt
+SIGNAL_CUTOFF_HZ = {"s_dphi": config.PLOT_LPF_CUTOFF_STRONG_HZ}
 _DEG = 180.0 / np.pi
 
 
-def _lpf(y):
-    """零相位低通（Butterworth + filtfilt），用于显示平滑。"""
+def _lpf(y, fc=None):
+    """零相位低通（Butterworth + filtfilt），用于显示平滑。fc 为截止频率 (Hz)。"""
+    if fc is None:
+        fc = config.PLOT_LPF_CUTOFF_HZ
     fs = 1.0 / config.DT_CTRL
-    wn = config.PLOT_LPF_CUTOFF_HZ / (0.5 * fs)
+    wn = fc / (0.5 * fs)
     b, a = butter(2, min(wn, 0.99))
     if len(y) <= 12:
         return y
@@ -60,8 +66,9 @@ def _plot_sig(ax, d, key, color, lw=1.2, label=None, scale=1.0):
     t = d["t"][m]
     y = d[key] * scale
     if key in NOISY_SIGNALS:
-        ax.plot(t, y[m], color=color, lw=0.5, alpha=0.18)        # 原始（叠底）
-        ax.plot(t, _lpf(y)[m], color=color, lw=lw, label=label)  # 低通平滑（主线）
+        fc = SIGNAL_CUTOFF_HZ.get(key)  # None → 默认截止
+        ax.plot(t, y[m], color=color, lw=0.5, alpha=0.18)            # 原始（叠底）
+        ax.plot(t, _lpf(y, fc)[m], color=color, lw=lw, label=label)  # 低通平滑（主线）
     else:
         ax.plot(t, y[m], color=color, lw=lw, label=label)
 
