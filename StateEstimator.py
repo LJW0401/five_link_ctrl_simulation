@@ -167,6 +167,16 @@ class StateEstimator:
         print("")
         print(f"         左腿 L0={self.leg[1].L0:.3f} m, phi0={self.leg[1].Phi0:.3f} rad, theta={self.leg[1].Theta:.3f} rad")
         print(f"         左腿 dL0={self.leg[1].dL0:.3f} m/s, dPhi0={self.leg[1].dPhi0:.3f} rad/s, dTheta={self.leg[1].dTheta:.3f} rad/s")
+        print("")
+
+        # --- LQR 六变量状态向量: [theta, dtheta, x, dx, -phi, -phi_dot] ---
+        for idx, name in ((0, "右腿"), (1, "左腿")):
+            leg = self.leg[idx]
+            x_vec = [leg.Theta, leg.dTheta,
+                     self.body.x, self.body.x_dot,
+                     self.body.phi, self.body.phi_dot]
+            print(f"         {name} 状态向量 x = [{x_vec[0]:.3f}, {x_vec[1]:.3f}, "
+                  f"{x_vec[2]:.3f}, {x_vec[3]:.3f}, {x_vec[4]:.3f}, {x_vec[5]:.3f}]")
 
     def _update_leg(self, idx, vmc, body_phi, dt):
         """更新单条腿的状态"""
