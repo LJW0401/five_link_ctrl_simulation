@@ -8,10 +8,11 @@ from caculation import *
 class LegWheelRobot:
     """腿轮机器人仿真类"""
     
-    def __init__(self, model_path: str = 'legwheel_robot1.xml'):
+    def __init__(self, model_path: str = 'legwheel_robot1.xml', viewer: bool = True):
         # 加载模型
         self.model = mujoco.MjModel.from_xml_path(model_path)
         self.data = mujoco.MjData(self.model)
+        self.use_viewer = viewer
 
         self.sensor_T = 0.001
         self.sensor_f = 1/self.sensor_T 
@@ -47,9 +48,12 @@ class LegWheelRobot:
 
 
 
-        # 启动可视化界面
-        self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
-        print("MuJoCo界面已启动！按ESC退出")
+        # 启动可视化界面（实验批跑时关闭，加速并避免 GUI 依赖）
+        if self.use_viewer:
+            self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
+            print("MuJoCo界面已启动！按ESC退出")
+        else:
+            self.viewer = None
     
     def sensor_read_data(self):
         """读取传感器数据"""
@@ -124,7 +128,8 @@ class LegWheelRobot:
     def step(self):
         """执行一步仿真"""
         mujoco.mj_step(self.model, self.data)
-        self.viewer.sync()
+        if self.viewer is not None:
+            self.viewer.sync()
     
     def reset(self):
         """重置机器人状态"""

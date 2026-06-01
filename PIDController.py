@@ -47,6 +47,14 @@ class PIDBalanceController:
         self.L0_target = 0.25
         self.theta_target = 0.0
 
+        # 统一目标接口（与 LQR/MPC 对齐，便于多算法横向对比）
+        self.x_target = 0.0       # 位置目标 (m)
+        self.v_target = 0.0       # 速度目标 (m/s)
+        self.pitch_target = 0.0   # pitch 偏置目标 (rad)
+        # |v_target| 超阈值进入速度模式：位置设定点按 v_target 匀速漂移，
+        # 由位置外环跟随，从而以现有增益实现速度跟踪（不引入新增益）
+        self.v_hold_threshold = 0.05
+
         self.theta_amplitude = 0.0
         self.theta_frequency = 1.0
         self.tick = 0
@@ -120,8 +128,11 @@ class PIDBalanceController:
         for i in range(4):
             joint_torque[i] = self.pid_joint[i].calc(joint_pos[i], self.joint_targets[i])
 
-        t_x = self.pid_x.calc(body_x, 0.0)
-        self.pitch_ref = max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x))
+        # 速度模式：位置设定点按 v_target 匀速漂移，让位置外环以匀速跟随
+        if abs(self.v_target) > self.v_hold_threshold:
+            self.x_target += self.v_target * 0.004
+        t_x = self.pid_x.calc(body_x, self.x_target)
+        self.pitch_ref = self.pitch_target + max(-POS_PID.OUTPUT_LIMIT, min(POS_PID.OUTPUT_LIMIT, t_x))
 
         print(f"pitch={pitch:.3f} rad, pitch_ref={self.pitch_ref:.3f} rad | body_x={body_x:.3f} m, body_vx={body_vx:.3f} m/s")
 

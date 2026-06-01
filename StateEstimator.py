@@ -155,8 +155,8 @@ class StateEstimator:
         # print(f"       dL0={self.vmc_l.d_L0:.3f} m/s, dPhi0={self.vmc_l.d_phi0:.3f} rad/s, dTheta={self.vmc_l.d_theta:.3f} rad/s")
 
         # --- 更新各腿状态 ---
-        self._update_leg(0, self.vmc_r, self.body.phi, dt)  # 右腿
-        self._update_leg(1, self.vmc_l, self.body.phi, dt)  # 左腿
+        self._update_leg(0, self.vmc_r, self.body.phi, self.body.phi_dot, dt)  # 右腿
+        self._update_leg(1, self.vmc_l, self.body.phi, self.body.phi_dot, dt)  # 左腿
 
         print("状态估计: ")
         print(f"         机体 phi={self.body.phi:.3f} rad, phi_dot={self.body.phi_dot:.3f} rad/s, x={self.body.x:.3f} m, x_dot={self.body.x_dot:.3f} m/s")
@@ -168,7 +168,7 @@ class StateEstimator:
         print(f"         左腿 L0={self.leg[1].L0:.3f} m, phi0={self.leg[1].Phi0:.3f} rad, theta={self.leg[1].Theta:.3f} rad")
         print(f"         左腿 dL0={self.leg[1].dL0:.3f} m/s, dPhi0={self.leg[1].dPhi0:.3f} rad/s, dTheta={self.leg[1].dTheta:.3f} rad/s")
 
-    def _update_leg(self, idx, vmc, body_phi, dt):
+    def _update_leg(self, idx, vmc, body_phi, body_phi_dot, dt):
         """更新单条腿的状态"""
         leg = self.leg[idx]
 
@@ -183,10 +183,13 @@ class StateEstimator:
             leg._last_Theta = leg.Theta
             leg._first = False
 
-        # ===== 速度（数值微分） =====
+        # ===== 速度 =====
+        # L0/Phi0 来自关节编码器，数值微分；
+        # dTheta 由 theta = π/2 + phi - phi0 得 dTheta = phi_dot - dPhi0，
+        # 其中 phi_dot 直接取自陀螺仪（角速度量测），避免对含噪 pitch 角做差分而放大噪声。
         leg.dL0 = (leg.L0 - leg._last_L0) / dt
         leg.dPhi0 = (leg.Phi0 - leg._last_Phi0) / dt
-        leg.dTheta = (leg.Theta - leg._last_Theta) / dt
+        leg.dTheta = body_phi_dot - leg.dPhi0
 
         # ===== 保存上一时刻 =====
         leg._last_L0 = leg.L0
