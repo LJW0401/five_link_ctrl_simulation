@@ -200,6 +200,10 @@ def main(argv=None):
         if s.index in (1, 5):
             sp = plotting.plot_states(s, runs, config.FIG_DIR)
             print(f"       → 六状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
+        # 腿长动态工况额外绘制腿长 L0 跟踪效果图
+        if s.index == 5:
+            lp = plotting.plot_leg_tracking(s, runs, config.FIG_DIR)
+            print(f"       → 腿长跟踪图 {os.path.relpath(lp, config.REPO_ROOT)}")
         # 位置阶跃 / 速度跟踪工况额外绘制 φ / θ / x / dx 四条曲线
         # （目标虚线：位置阶跃在 x 面板，速度跟踪在 dx 面板）
         if s.index in (2, 3):
