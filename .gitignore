@@ -23,3 +23,6 @@ Thumbs.db
 
 # MJCF model files
 MJCF/
+
+# 实验输出（数据/图表/表格，可由 experiments/run_experiments 重新生成）
+output/
