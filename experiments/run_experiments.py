@@ -115,8 +115,10 @@ def _write_summary_tables(scenarios, metrics_table):
     tex_path = os.path.join(config.TABLE_DIR, "summary.tex")
     with open(tex_path, "w", encoding="utf-8") as f:
         f.write("% 由 experiments/run_experiments.py 自动生成，可替换 main.tex 中 tab:compare 数据\n")
-        f.write("\\begin{tabular}{l l c c c}\n\\toprule\n")
-        f.write("\\textbf{工况} & \\textbf{指标} & \\textbf{PID} & \\textbf{LQR} & \\textbf{MPC} \\\\\n")
+        f.write("\\begin{tabular}{l l" + " c" * len(config.CONTROLLERS) + "}\n\\toprule\n")
+        f.write("\\textbf{工况} & \\textbf{指标} & " +
+                " & ".join("\\textbf{%s}" % config.CONTROLLER_LABEL[c] for c in config.CONTROLLERS)
+                + " \\\\\n")
         f.write("\\midrule\n")
         for case, metric, idx, key, fmt in SUMMARY_ROWS:
             vals = [_fmt(metrics_table[c][idx].get(key), fmt) for c in config.CONTROLLERS]
