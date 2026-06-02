@@ -194,10 +194,10 @@ def main(argv=None):
             metrics_json[f"case{s.index}_{ck}"] = mt
         fig_path = plotting.plot_scenario(s, runs, config.FIG_DIR)
         print(f"       → 图表 {os.path.relpath(fig_path, config.REPO_ROOT)}")
-        # 平衡保持 / 腿长动态工况额外绘制六维状态反馈量随时间变化
-        # （腿长 L0 不在这六维平衡状态内，故六状态目标仍为 0；
-        #   工况5 借此展示腿长摆动对平衡状态的扰动）
-        if s.index == 1:
+        # 平衡保持 / 瞬态扰动工况额外绘制六维状态反馈量随时间变化
+        # （扰动恢复目标也为 0，故复用同一张六状态图；
+        #   工况6 借此展示扰动后六维状态偏离与回归 0 的过程）
+        if s.index in (1, 6):
             sp = plotting.plot_states(s, runs, config.FIG_DIR)
             print(f"       → 六状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
         # 腿长动态工况：六维状态 + 腿长跟踪合并为一张图

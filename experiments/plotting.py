@@ -119,11 +119,13 @@ def plot_scenario(scenario, runs, out_dir):
     elif scenario.index == 5:
         ax_track.plot(t, ref["L0_target"][rm], "k--", lw=0.9, label="目标")
 
-    # 扰动窗口阴影
+    # 扰动窗口阴影 + 显示窗口裁剪（聚焦扰动前后）
     if scenario._disturbance is not None and scenario.step_time is not None:
+        from .scenarios import DISTURB_DUR, DISTURB_WINDOW
         for ax in axes:
-            ax.axvspan(scenario.step_time, scenario.step_time + 0.1,
+            ax.axvspan(scenario.step_time, scenario.step_time + DISTURB_DUR,
                        color="0.85", alpha=0.6, zorder=0)
+            ax.set_xlim(*DISTURB_WINDOW)
 
     # 轮力矩饱和线
     ax_tor.axhline(config.WHEEL_TORQUE_LIMIT, color="0.5", ls=":", lw=0.8)
@@ -157,6 +159,14 @@ def plot_states(scenario, runs, out_dir):
         ("s_phi", "φ  机体倾角 (=pitch, rad)"),
         ("s_dphi", "dφ/dt  倾角速度 (rad/s)"),
     ]
+    # 瞬态扰动工况：标出推力施加时间段（t=step_time 起，持续 DISTURB_DUR），
+    # 并把 x 轴裁剪到扰动前后的显示窗口
+    from .scenarios import DISTURB_TIME, DISTURB_DUR, DISTURB_WINDOW
+    disturb_span = None
+    disturb_window = None
+    if scenario.index == 6:
+        disturb_span = (DISTURB_TIME, DISTURB_TIME + DISTURB_DUR)
+        disturb_window = DISTURB_WINDOW
     fig, axes = plt.subplots(3, 2, figsize=(11, 8.5), sharex=True)
     axes = axes.ravel()
     for ax, (key, ylabel) in zip(axes, specs):
@@ -165,10 +175,15 @@ def plot_states(scenario, runs, out_dir):
                 continue
             _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
                       lw=1.0, label=config.CONTROLLER_LABEL[ck])
+        if disturb_span is not None:
+            ax.axvspan(disturb_span[0], disturb_span[1], color="#d62728",
+                       alpha=0.18, lw=0, label="扰动施加")
+        if disturb_window is not None:
+            ax.set_xlim(*disturb_window)
         ax.axhline(0.0, color="0.6", ls="--", lw=0.8)  # 目标值均为 0
         ax.set_ylabel(ylabel)
         ax.grid(True, alpha=0.3)
-    axes[0].legend(loc="best", fontsize=9, ncol=3)
+    axes[0].legend(loc="best", fontsize=9, ncol=4)
     axes[4].set_xlabel("时间 t (s)")
     axes[5].set_xlabel("时间 t (s)")
     fig.suptitle(f"工况 {scenario.index}（{scenario.title}）六维状态反馈量随时间变化"
