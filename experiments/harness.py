@@ -6,7 +6,7 @@
   - 不走 UDP/键盘，工况目标由 scenario.apply(t, ctrl) 直接注入
   - IMU 读数叠加固定种子的零均值白噪声（仅作为控制器输入；
     指标统计使用 MuJoCo 真实状态，不含噪声）
-  - 工况 6 通过 data.xfrc_applied 在机体上施加水平推力
+  - 工况 5（瞬态扰动）通过 data.xfrc_applied 在机体上施加水平推力
 
 返回 dict[str, np.ndarray]，每个键是一条按控制周期采样的时序。
 """
@@ -107,7 +107,7 @@ def run_one(ctrl_type, scenario):
         for step in range(n_steps):
             t = step * config.DT_SIM
 
-            # --- 工况 6：水平推力扰动（每个物理步设置/清零）---
+            # --- 瞬态扰动工况：水平推力扰动（每个物理步设置/清零）---
             fx = scenario.disturbance(t)
             robot.data.xfrc_applied[base_id, :] = 0.0
             if fx != 0.0:

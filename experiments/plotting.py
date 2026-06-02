@@ -81,15 +81,15 @@ def _plot_track_row(ax, scenario, data, color):
         _plot_sig(ax, data, "x", color)
     elif idx == 3:          # 速度
         _plot_sig(ax, data, "vx", color)
-    elif idx == 5:          # 腿长
+    elif idx == 4:          # 腿长
         _plot_sig(ax, data, "L0", color)
-    elif idx == 6:          # 扰动工况中间行画 pitch 已在行1，这里画 Tp
+    elif idx == 5:          # 扰动工况中间行画 pitch 已在行1，这里画 Tp
         _plot_sig(ax, data, "Tp_r", color)
 
 
 _TRACK_YLABEL = {
     1: "位移 x (m)", 2: "位移 x (m)", 3: "速度 vx (m/s)",
-    5: "腿长 L0 (m)", 6: "髋部力矩 Tp (N·m)",
+    4: "腿长 L0 (m)", 5: "髋部力矩 Tp (N·m)",
 }
 
 
@@ -116,7 +116,7 @@ def plot_scenario(scenario, runs, out_dir):
         ax_track.plot(t, ref["x_target"][rm], "k--", lw=0.9, label="目标")
     elif scenario.index == 3:
         ax_track.plot(t, ref["v_target"][rm], "k--", lw=0.9, label="目标")
-    elif scenario.index == 5:
+    elif scenario.index == 4:
         ax_track.plot(t, ref["L0_target"][rm], "k--", lw=0.9, label="目标")
 
     # 扰动窗口阴影 + 显示窗口裁剪（聚焦扰动前后）
@@ -164,7 +164,7 @@ def plot_states(scenario, runs, out_dir):
     from .scenarios import DISTURB_TIME, DISTURB_DUR, DISTURB_WINDOW
     disturb_span = None
     disturb_window = None
-    if scenario.index == 6:
+    if scenario.index == 5:
         disturb_span = (DISTURB_TIME, DISTURB_TIME + DISTURB_DUR)
         disturb_window = DISTURB_WINDOW
     fig, axes = plt.subplots(3, 2, figsize=(11, 8.5), sharex=True)

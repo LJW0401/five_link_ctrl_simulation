@@ -84,7 +84,7 @@ def compute_metrics(data, scenario):
         m["vel_ss_err"] = float(np.mean(verr)) if verr.size else float("nan")
         m["headline"] = m["vel_ss_err"]
 
-    elif idx == 5:  # 腿长正弦：pitch 振幅
+    elif idx == 4:  # 腿长正弦：pitch 振幅
         osc = _window(t, lo=scenario.settle)
         seg = pitch_deg[osc]
         if seg.size:
@@ -99,7 +99,7 @@ def compute_metrics(data, scenario):
         # 而非用振幅 —— 振幅会把恒定大倾角误判为「波动小=表现好」。
         m["headline"] = m["pitch_rms_deg"]
 
-    elif idx == 6:  # 瞬态扰动：pitch 峰值 + 饱和占比
+    elif idx == 5:  # 瞬态扰动：pitch 峰值 + 饱和占比
         st = scenario.step_time
         after = _window(t, lo=st)
         seg = np.abs(pitch_deg[after])

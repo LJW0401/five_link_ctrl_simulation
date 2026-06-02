@@ -6,8 +6,8 @@
   - disturbance(t)   返回施加在机体上的水平外力 (N)，无扰动时返回 0
   - duration         仿真时长 (s)；settle 为计算稳态指标时跳过的前段时长 (s)
 
-工况与论文编号一一对应：
-  1 平衡保持 / 2 位置阶跃 / 3 速度跟踪 / 4 yaw 阶跃 / 5 腿长动态 / 6 瞬态扰动
+工况与论文编号一一对应（原 yaw 阶跃工况已移除，其后编号顺延，1--5 连续无空号）：
+  1 平衡保持 / 2 位置阶跃 / 3 速度跟踪 / 4 腿长动态 / 5 瞬态扰动
 """
 
 import math
@@ -110,13 +110,13 @@ SCENARIOS = [
              apply=_apply_vel_track, settle=1.0,
              step_time=VEL_STEP_TIME, step_target=VEL_STEP_TARGET,
              metric={"name": "稳态速度误差", "unit": "m/s"}),
-    # 工况 4（yaw 阶跃）已移除：yaw 由三控制器共用的同一 yaw PID 跟踪，
-    # 在 PID/LQR/MPC 间完全相同；且转向几乎不扰动平衡（转向期 pitch 偏差与工况1雷同），
-    # 不提供超出工况1的对比信息，故删去。工况编号保留原值（4 处留空）。
-    Scenario("leg_sine", 5, "腿长动态变化", duration=22.0, init_L0=0.20,
+    # 原 yaw 阶跃工况已移除：yaw 由 LQR/MPC 共用的同一 yaw PID 跟踪、两者间完全相同，
+    # 且转向几乎不扰动平衡（转向期 pitch 偏差与工况 1 雷同），不提供额外对比信息，故删去。
+    # 其后工况编号顺延，腿长动态由 5 改为 4、瞬态扰动由 6 改为 5，全程 1--5 连续无空号。
+    Scenario("leg_sine", 4, "腿长动态变化", duration=22.0, init_L0=0.20,
              apply=_apply_leg_sine, settle=2.0,
              metric={"name": "pitch 振幅", "unit": "°"}),
-    Scenario("disturb", 6, "瞬态扰动恢复", duration=20.0, init_L0=0.20,
+    Scenario("disturb", 5, "瞬态扰动恢复", duration=20.0, init_L0=0.20,
              apply=_apply_disturb, disturbance=_disturb_push,
              settle=1.0, step_time=DISTURB_TIME,
              metric={"name": "pitch 峰值", "unit": "°"}),

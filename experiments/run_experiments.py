@@ -34,9 +34,9 @@ SUMMARY_ROWS = [
     ("2 位置阶跃", "终值位置误差 / m", 2, "pos_ss_err", "{:.2f}"),
     ("2 位置阶跃", "pitch 反向超调 / °", 2, "pitch_reverse_overshoot_deg", "{:.1f}"),
     ("3 速度跟踪", "稳态误差 / (m·s⁻¹)", 3, "vel_ss_err", "{:.3f}"),
-    ("5 L0 正弦", "pitch RMS / °", 5, "pitch_rms_deg", "{:.2f}"),
-    ("6 瞬态扰动", "pitch 峰值 / °", 6, "pitch_peak_after_deg", "{:.1f}"),
-    ("6 瞬态扰动", "轮力矩饱和占比 / %", 6, "sat_frac_recovery_pct", "{:.0f}"),
+    ("4 L0 正弦", "pitch RMS / °", 4, "pitch_rms_deg", "{:.2f}"),
+    ("5 瞬态扰动", "pitch 峰值 / °", 5, "pitch_peak_after_deg", "{:.1f}"),
+    ("5 瞬态扰动", "轮力矩饱和占比 / %", 5, "sat_frac_recovery_pct", "{:.0f}"),
 ]
 
 CSV_COLUMNS = [
@@ -137,7 +137,7 @@ def _write_readme(scenarios):
         f.write("由 `python -m experiments.run_experiments` 在 MuJoCo（MJCF/env.xml）上实测生成。\n\n")
         f.write("## 目录\n\n")
         f.write("- `data/` 原始时序 CSV，命名 `caseN_<工况>_<控制器>.csv`，列见首行表头\n")
-        f.write("- `figures/` 每个工况一张三类控制器响应对比图 + `summary_headline.png`\n")
+        f.write("- `figures/` 每个工况一张 LQR / MPC 响应对比图 + 六维状态量图 + `summary_headline.png`\n")
         f.write("- `tables/` 汇总指标 `summary.{csv,md,tex}`（tex 可直接替换论文表 4 数据）\n")
         f.write("- `metrics.json` 全部指标的机器可读副本\n\n")
         f.write("## 工况清单\n\n")
@@ -148,17 +148,18 @@ def _write_readme(scenarios):
                 f"固定种子 {config.NOISE_SEED}；控制周期 {config.DT_CTRL*1e3:.0f} ms；"
                 f"每次工况前有 {config.WARMUP_S:.0f}s 预平衡热身（不记录），热身末清零里程计。\n")
 
-        f.write("\n## 实测结论与注意事项（如实记录，与论文表 4 乐观预期值有差异）\n\n")
-        f.write("- **平衡/姿态类工况**：LQR 最优（pitch RMS ≈1.5°），MPC 次之（≈5°），"
-                "PID 明显最差（稳态有大 pitch 偏置）。这一相对优劣与论文论点一致，"
-                "但绝对量级远大于表 4 的乐观估计值。\n")
+        f.write("\n## 实测结论与注意事项（如实记录，论文表 4 已采用本组实测值）\n\n")
+        f.write("- **平衡/姿态类工况**：LQR 整体占优（pitch RMS ≈1.5°），MPC 次之（≈5°），"
+                "二者均全程无倾覆。LQR 权重 R 较小、对状态偏差更敏感，反馈更紧。\n")
         from .scenarios import POS_STEP_TIME, POS_STEP_TARGET
-        f.write(f"- **位置/速度跟踪较弱**：三类控制器都能保持平衡，但位置外环很弱——"
+        f.write(f"- **位置/速度跟踪较弱**：LQR 与 MPC 都能保持平衡，但位置外环很弱——"
                 f"即使目标置零整车也会缓慢溜车。位置阶跃（t={POS_STEP_TIME:.0f}s 阶跃到 {POS_STEP_TARGET:.0f}m）"
-                f"下普遍难以稳定到目标：终值位置误差以 LQR 最小、PID 因长时间溜车+大幅振荡而最差；"
-                f"速度稳态误差也偏大。具体数值见 summary.md。\n")
-        f.write("- **腿长动态工况（工况 5）最苛刻**：仅 PID 跟住了 L0 正弦（±22° pitch 摆动）；"
-                "LQR 卡死在约 −27.5° 倾角、MPC 直接倒伏。详见稳定性矩阵。\n")
+                f"下两者均难以收敛到目标，终值位置误差以 LQR 更小；速度稳态误差 MPC 略小。"
+                f"具体数值见 summary.md。\n")
+        f.write("- **腿长动态工况（工况 4）**：LQR 与 MPC 都能紧密跟踪 L0 正弦（跟踪 RMS 毫米级），"
+                "但姿态稳定性差异显著——LQR pitch RMS≈3.6°，MPC≈8.7°，凸显增益调度价值。\n")
+        f.write("- **瞬态扰动工况（工况 5）**：LQR pitch 峰值更低、恢复更快，但轮力矩饱和占比更高；"
+                "MPC 借盒约束几乎不触饱和，代价是姿态摆幅更大。\n")
         f.write("- 指标基于 MuJoCo 无噪声真实状态统计；倒伏（稳态 |pitch|>45°）已在 summary.md 标注。\n")
         f.write("- 状态估计 `dTheta` 改用陀螺仪角速度（而非对含噪 pitch 角差分），"
                 "无噪声时与原实现数值等价，但避免了噪声经微分被放大；这是采集层修正，未改控制律。\n")
@@ -198,12 +199,12 @@ def main(argv=None):
         print(f"       → 图表 {os.path.relpath(fig_path, config.REPO_ROOT)}")
         # 平衡保持 / 瞬态扰动工况额外绘制六维状态反馈量随时间变化
         # （扰动恢复目标也为 0，故复用同一张六状态图；
-        #   工况6 借此展示扰动后六维状态偏离与回归 0 的过程）
-        if s.index in (1, 6):
+        #   工况 5 借此展示扰动后六维状态偏离与回归 0 的过程）
+        if s.index in (1, 5):
             sp = plotting.plot_states(s, runs, config.FIG_DIR)
             print(f"       → 六状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
         # 腿长动态工况：六维状态 + 腿长跟踪合并为一张图
-        if s.index == 5:
+        if s.index == 4:
             sp = plotting.plot_states_legtrack(s, runs, config.FIG_DIR)
             print(f"       → 六状态+腿长跟踪图 {os.path.relpath(sp, config.REPO_ROOT)}")
         # 位置阶跃 / 速度跟踪工况额外绘制 φ / θ / x / dx 四条曲线
