@@ -139,7 +139,7 @@ def plot_scenario(scenario, runs, out_dir):
     for ax in axes:
         ax.grid(True, alpha=0.3)
     ax_pitch.legend(loc="best", fontsize=9, ncol=3)
-    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）三类控制器响应对比",
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）LQR / MPC 响应对比",
                  fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
 
@@ -309,7 +309,7 @@ def plot_summary(scenarios, metrics_table, out_dir):
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=9)
     ax.set_ylabel("头条指标（各工况量纲见表）")
-    ax.set_title("各工况头条指标对比（PID / LQR / MPC）")
+    ax.set_title("各工况头条指标对比（LQR / MPC）")
     ax.legend()
     ax.grid(True, axis="y", alpha=0.3)
     fig.tight_layout()
