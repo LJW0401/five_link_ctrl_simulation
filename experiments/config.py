@@ -38,7 +38,7 @@ PLOT_LPF_CUTOFF_HZ = 8.0          # 默认截止频率 (Hz)，控制采样率 25
 PLOT_LPF_CUTOFF_STRONG_HZ = 3.0   # 强滤波截止频率 (Hz)，用于倾角角速度 dφ/dt
 
 # ---- 控制器清单 ----
-CONTROLLERS = ["lqr", "mpc"]
+CONTROLLERS = ["pid", "lqr", "mpc"]
 CONTROLLER_LABEL = {"pid": "PID", "lqr": "LQR", "mpc": "MPC"}
 CONTROLLER_COLOR = {"pid": "#c0392b", "lqr": "#2766c8", "mpc": "#27895a"}
 
