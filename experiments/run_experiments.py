@@ -181,7 +181,7 @@ def main(argv=None):
     _ensure_dirs()
     plotting.set_cjk_font()
 
-    metrics_table = {ck: {} for ck in config.CONTROLLERS}
+    metrics_table = {ck: {} for ck in controllers}
     metrics_json = {}
 
     for s in scenarios:

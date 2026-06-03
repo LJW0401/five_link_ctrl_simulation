@@ -30,6 +30,19 @@ NOISY_SIGNALS = {"T_right", "T_left", "Tp_r", "Tp_l",
 SIGNAL_CUTOFF_HZ = {"s_dphi": config.PLOT_LPF_CUTOFF_STRONG_HZ}
 _DEG = 180.0 / np.pi
 
+# 规范控制器顺序（PID/LQR/MPC），用于在图中按固定次序遍历 runs 中实际存在的控制器。
+_CTRL_ORDER = list(config.CONTROLLER_LABEL)
+
+
+def _present(runs):
+    """返回 runs 中实际存在的控制器键，按 PID/LQR/MPC 规范顺序排列。"""
+    return [ck for ck in _CTRL_ORDER if ck in runs]
+
+
+def _title_controllers(runs):
+    """图题里的控制器名串，如 "PID" 或 "LQR / MPC"，反映本次实际所跑控制器。"""
+    return " / ".join(config.CONTROLLER_LABEL[ck] for ck in _present(runs))
+
 
 def _lpf(y, fc=None):
     """零相位低通（Butterworth + filtfilt），用于显示平滑。fc 为截止频率 (Hz)。"""
@@ -98,9 +111,7 @@ def plot_scenario(scenario, runs, out_dir):
     fig, axes = plt.subplots(3, 1, figsize=(8.2, 8.0), sharex=True)
     ax_pitch, ax_track, ax_tor = axes
 
-    for ck in config.CONTROLLERS:
-        if ck not in runs:
-            continue
+    for ck in _present(runs):
         data = runs[ck]
         c = config.CONTROLLER_COLOR[ck]
         lbl = config.CONTROLLER_LABEL[ck]
@@ -139,7 +150,7 @@ def plot_scenario(scenario, runs, out_dir):
     for ax in axes:
         ax.grid(True, alpha=0.3)
     ax_pitch.legend(loc="best", fontsize=9, ncol=3)
-    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）LQR / MPC 响应对比",
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）{_title_controllers(runs)} 响应对比",
                  fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
 
@@ -170,9 +181,7 @@ def plot_states(scenario, runs, out_dir):
     fig, axes = plt.subplots(3, 2, figsize=(11, 8.5), sharex=True)
     axes = axes.ravel()
     for ax, (key, ylabel) in zip(axes, specs):
-        for ck in config.CONTROLLERS:
-            if ck not in runs:
-                continue
+        for ck in _present(runs):
             _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
                       lw=1.0, label=config.CONTROLLER_LABEL[ck])
         if disturb_span is not None:
@@ -208,9 +217,7 @@ def plot_state_curves(scenario, runs, out_dir, specs, suffix="states"):
     ref = next(iter(runs.values()))
     rm = _m(ref)
     for ax, (key, ylabel, scale, tgt) in zip(axes, specs):
-        for ck in config.CONTROLLERS:
-            if ck not in runs:
-                continue
+        for ck in _present(runs):
             _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
                       lw=1.0, label=config.CONTROLLER_LABEL[ck], scale=scale)
         if tgt is not None:
@@ -249,9 +256,7 @@ def plot_states_legtrack(scenario, runs, out_dir):
 
     # 前 6 格：六维状态（目标均为 0）
     for ax, (key, ylabel) in zip(axes[:6], state_specs):
-        for ck in config.CONTROLLERS:
-            if ck not in runs:
-                continue
+        for ck in _present(runs):
             _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
                       lw=1.0, label=config.CONTROLLER_LABEL[ck])
         ax.axhline(0.0, color="0.6", ls="--", lw=0.8)
@@ -260,9 +265,7 @@ def plot_states_legtrack(scenario, runs, out_dir):
 
     # 第 7 格：腿长 L0 实际 vs 目标
     ax_l0 = axes[6]
-    for ck in config.CONTROLLERS:
-        if ck not in runs:
-            continue
+    for ck in _present(runs):
         d = runs[ck]; m = _m(d)
         ax_l0.plot(d["t"][m], d["L0"][m], color=config.CONTROLLER_COLOR[ck],
                    lw=1.3, label=config.CONTROLLER_LABEL[ck])
@@ -272,9 +275,7 @@ def plot_states_legtrack(scenario, runs, out_dir):
 
     # 第 8 格：腿长跟踪误差
     ax_err = axes[7]
-    for ck in config.CONTROLLERS:
-        if ck not in runs:
-            continue
+    for ck in _present(runs):
         d = runs[ck]; m = _m(d)
         ax_err.plot(d["t"][m], (d["L0"] - d["L0_target"])[m],
                     color=config.CONTROLLER_COLOR[ck], lw=1.1)
