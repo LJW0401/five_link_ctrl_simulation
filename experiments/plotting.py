@@ -106,6 +106,28 @@ _TRACK_YLABEL = {
 }
 
 
+def _torque_ax(ax, runs, key, ylabel, saturation=False,
+               disturb_span=None, disturb_window=None):
+    """在给定子图上画 3 种控制器输出的同一路力矩（用于六状态图末尾追加的力矩面板）。
+    key: "Tp_r"（右髋部力矩）或 "T_right"（右驱动轮力矩）；
+    saturation=True 叠加 ±WHEEL_TORQUE_LIMIT 饱和线（仅轮力矩需要）；
+    扰动工况传入 disturb_span/disturb_window 以与状态面板一致地标注与裁剪。
+    力矩为噪声大信号，_plot_sig 自动做零相位低通平滑（原始淡色叠底）。"""
+    for ck in _present(runs):
+        _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
+                  lw=1.0, label=config.CONTROLLER_LABEL[ck])
+    if disturb_span is not None:
+        ax.axvspan(disturb_span[0], disturb_span[1], color="#d62728",
+                   alpha=0.18, lw=0)
+    if disturb_window is not None:
+        ax.set_xlim(*disturb_window)
+    if saturation:
+        ax.axhline(config.WHEEL_TORQUE_LIMIT, color="0.5", ls=":", lw=0.8)
+        ax.axhline(-config.WHEEL_TORQUE_LIMIT, color="0.5", ls=":", lw=0.8)
+    ax.set_ylabel(ylabel)
+    ax.grid(True, alpha=0.3)
+
+
 def plot_scenario(scenario, runs, out_dir):
     """runs: dict[ctrl_key -> data]。输出 PNG 路径。"""
     fig, axes = plt.subplots(3, 1, figsize=(8.2, 8.0), sharex=True)
@@ -160,6 +182,24 @@ def plot_scenario(scenario, runs, out_dir):
     return path
 
 
+def plot_scenario_states(scenario, runs, out_dir):
+    """按工况分派绘制「状态量 + 控制力矩」合并图（每工况一张，含 Tp/T 力矩面板）。
+    run_experiments 与 replot_from_csv 共用，保证两条路径产出同一张图。返回输出路径。"""
+    idx = scenario.index
+    if idx == 4:               # 腿长动态：六维状态 + 腿长跟踪 + 力矩
+        return plot_states_legtrack(scenario, runs, out_dir)
+    if idx in (2, 3):          # 位置阶跃 / 速度跟踪：φ/θ/x/dx + 力矩
+        specs = [
+            ("s_phi", "φ  机体倾角 (rad)", 1.0, None),
+            ("s_theta", "θ  虚拟腿摆角 (rad)", 1.0, None),
+            ("x", "x  位移 (m)", 1.0, "x_target" if idx == 2 else None),
+            ("vx", "dx/dt  速度 (m/s)", 1.0, "v_target" if idx == 3 else None),
+        ]
+        return plot_state_curves(scenario, runs, out_dir, specs, suffix="states")
+    # 工况 1 平衡 / 工况 5 瞬态扰动：六维状态 + 力矩
+    return plot_states(scenario, runs, out_dir)
+
+
 def plot_states(scenario, runs, out_dir):
     """六维状态反馈量 x=(θ,θ̇,x,ẋ,φ,φ̇) 随时间变化（PID/LQR/MPC 同图对比）。"""
     specs = [
@@ -178,9 +218,10 @@ def plot_states(scenario, runs, out_dir):
     if scenario.index == 5:
         disturb_span = (DISTURB_TIME, DISTURB_TIME + DISTURB_DUR)
         disturb_window = DISTURB_WINDOW
-    fig, axes = plt.subplots(3, 2, figsize=(11, 8.5), sharex=True)
+    # 4×2：前 6 格六维状态，末 2 格追加右髋部力矩 Tp 与右驱动轮力矩 T
+    fig, axes = plt.subplots(4, 2, figsize=(11, 11), sharex=True)
     axes = axes.ravel()
-    for ax, (key, ylabel) in zip(axes, specs):
+    for ax, (key, ylabel) in zip(axes[:6], specs):
         for ck in _present(runs):
             _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
                       lw=1.0, label=config.CONTROLLER_LABEL[ck])
@@ -192,11 +233,15 @@ def plot_states(scenario, runs, out_dir):
         ax.axhline(0.0, color="0.6", ls="--", lw=0.8)  # 目标值均为 0
         ax.set_ylabel(ylabel)
         ax.grid(True, alpha=0.3)
+    _torque_ax(axes[6], runs, "Tp_r", "Tp  右髋部力矩 (N·m)",
+               disturb_span=disturb_span, disturb_window=disturb_window)
+    _torque_ax(axes[7], runs, "T_right", "T  右驱动轮力矩 (N·m)", saturation=True,
+               disturb_span=disturb_span, disturb_window=disturb_window)
     axes[0].legend(loc="best", fontsize=9, ncol=4)
-    axes[4].set_xlabel("时间 t (s)")
-    axes[5].set_xlabel("时间 t (s)")
-    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）六维状态反馈量随时间变化"
-                 f"（目标值均为 0，虚线）", fontsize=13)
+    axes[6].set_xlabel("时间 t (s)")
+    axes[7].set_xlabel("时间 t (s)")
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）六维状态反馈量与控制力矩"
+                 f"随时间变化（状态目标均为 0，虚线）", fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
     path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_states.png")
     fig.savefig(path)
@@ -211,7 +256,8 @@ def plot_state_curves(scenario, runs, out_dir, specs, suffix="states"):
            否则取该目标时序画虚线（用于阶跃类工况）。
     """
     n = len(specs)
-    rows = (n + 1) // 2
+    total = n + 2                  # 末尾追加右髋部力矩 Tp 与右驱动轮力矩 T 两面板
+    rows = (total + 1) // 2
     fig, axes = plt.subplots(rows, 2, figsize=(11, 3.0 * rows + 0.5), sharex=True)
     axes = axes.ravel()
     ref = next(iter(runs.values()))
@@ -226,12 +272,15 @@ def plot_state_curves(scenario, runs, out_dir, specs, suffix="states"):
             ax.axhline(0.0, color="0.6", ls="--", lw=0.8)
         ax.set_ylabel(ylabel)
         ax.grid(True, alpha=0.3)
-    for ax in axes[n:]:        # 隐藏多余子图
+    _torque_ax(axes[n], runs, "Tp_r", "Tp  右髋部力矩 (N·m)")
+    _torque_ax(axes[n + 1], runs, "T_right", "T  右驱动轮力矩 (N·m)", saturation=True)
+    for ax in axes[total:]:        # 隐藏多余子图
         ax.set_visible(False)
     axes[0].legend(loc="best", fontsize=9, ncol=3)
-    for ax in axes[max(0, n - 2):n]:
+    for ax in axes[max(0, total - 2):total]:
         ax.set_xlabel("时间 t (s)")
-    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）状态量随时间变化", fontsize=13)
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）状态量与控制力矩随时间变化",
+                 fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
     path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_{suffix}.png")
     fig.savefig(path)
@@ -249,7 +298,8 @@ def plot_states_legtrack(scenario, runs, out_dir):
         ("s_phi", "φ  机体倾角 (=pitch, rad)"),
         ("s_dphi", "dφ/dt  倾角速度 (rad/s)"),
     ]
-    fig, axes = plt.subplots(4, 2, figsize=(11, 11), sharex=True)
+    # 5×2：六维状态(6) + 腿长跟踪(1) + 腿长误差(1) + Tp(1) + T(1)
+    fig, axes = plt.subplots(5, 2, figsize=(11, 13.5), sharex=True)
     axes = axes.ravel()
     ref = next(iter(runs.values()))
     rm = _m(ref)
@@ -283,51 +333,17 @@ def plot_states_legtrack(scenario, runs, out_dir):
     ax_err.set_ylabel("L0 跟踪误差 (m)")
     ax_err.grid(True, alpha=0.3)
 
+    # 第 9、10 格：右髋部力矩 Tp 与右驱动轮力矩 T
+    _torque_ax(axes[8], runs, "Tp_r", "Tp  右髋部力矩 (N·m)")
+    _torque_ax(axes[9], runs, "T_right", "T  右驱动轮力矩 (N·m)", saturation=True)
+
     axes[0].legend(loc="best", fontsize=9, ncol=3)
-    axes[6].set_xlabel("时间 t (s)")
-    axes[7].set_xlabel("时间 t (s)")
-    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）六维状态反馈量 + 腿长跟踪"
+    axes[8].set_xlabel("时间 t (s)")
+    axes[9].set_xlabel("时间 t (s)")
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）六维状态反馈量 + 腿长跟踪 + 控制力矩"
                  f"（状态目标均为 0）", fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
     path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_states.png")
-    fig.savefig(path)
-    plt.close(fig)
-    return path
-
-
-def plot_torque_compare(scenario, runs, out_dir, key, ylabel, suffix,
-                        saturation=False):
-    """
-    单信号力矩对比图：3 种控制器输出的同一路力矩随时间变化叠在一张图上。
-    key: "Tp_r"（右髋部力矩）或 "T_right"（右驱动轮力矩）。
-    saturation=True 时叠加 ±WHEEL_TORQUE_LIMIT 饱和线（仅轮力矩需要）。
-    噪声大的力矩信号沿用 _plot_sig 的零相位低通平滑（原始淡色叠底）。
-    """
-    fig, ax = plt.subplots(figsize=(8.2, 4.0))
-    for ck in _present(runs):
-        _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
-                  lw=1.2, label=config.CONTROLLER_LABEL[ck])
-
-    # 扰动工况：标出扰动窗口并裁剪显示区间，与其它图保持一致
-    if scenario._disturbance is not None and scenario.step_time is not None:
-        from .scenarios import DISTURB_DUR, DISTURB_WINDOW
-        ax.axvspan(scenario.step_time, scenario.step_time + DISTURB_DUR,
-                   color="0.85", alpha=0.6, zorder=0)
-        ax.set_xlim(*DISTURB_WINDOW)
-
-    if saturation:
-        ax.axhline(config.WHEEL_TORQUE_LIMIT, color="0.5", ls=":", lw=0.8)
-        ax.axhline(-config.WHEEL_TORQUE_LIMIT, color="0.5", ls=":", lw=0.8)
-
-    ax.set_ylabel(ylabel)
-    ax.set_xlabel("时间 t (s)")
-    ax.grid(True, alpha=0.3)
-    ax.legend(loc="best", fontsize=9, ncol=3)
-    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）{_title_controllers(runs)} "
-                 f"{ylabel}对比", fontsize=13)
-    fig.tight_layout(rect=(0, 0, 1, 0.98))
-
-    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_{suffix}.png")
     fig.savefig(path)
     plt.close(fig)
     return path

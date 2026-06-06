@@ -197,35 +197,9 @@ def main(argv=None):
             metrics_json[f"case{s.index}_{ck}"] = mt
         fig_path = plotting.plot_scenario(s, runs, config.FIG_DIR)
         print(f"       → 图表 {os.path.relpath(fig_path, config.REPO_ROOT)}")
-        # 每个工况额外两张力矩对比图：3 种控制器输出的右髋部力矩 Tp 与右驱动轮力矩 T
-        tp_path = plotting.plot_torque_compare(
-            s, runs, config.FIG_DIR, "Tp_r", "右髋部力矩 Tp (N·m)", "Tp")
-        t_path = plotting.plot_torque_compare(
-            s, runs, config.FIG_DIR, "T_right", "右驱动轮力矩 T (N·m)", "T",
-            saturation=True)
-        print(f"       → 力矩图 {os.path.relpath(tp_path, config.REPO_ROOT)} / "
-              f"{os.path.relpath(t_path, config.REPO_ROOT)}")
-        # 平衡保持 / 瞬态扰动工况额外绘制六维状态反馈量随时间变化
-        # （扰动恢复目标也为 0，故复用同一张六状态图；
-        #   工况 5 借此展示扰动后六维状态偏离与回归 0 的过程）
-        if s.index in (1, 5):
-            sp = plotting.plot_states(s, runs, config.FIG_DIR)
-            print(f"       → 六状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
-        # 腿长动态工况：六维状态 + 腿长跟踪合并为一张图
-        if s.index == 4:
-            sp = plotting.plot_states_legtrack(s, runs, config.FIG_DIR)
-            print(f"       → 六状态+腿长跟踪图 {os.path.relpath(sp, config.REPO_ROOT)}")
-        # 位置阶跃 / 速度跟踪工况额外绘制 φ / θ / x / dx 四条曲线
-        # （目标虚线：位置阶跃在 x 面板，速度跟踪在 dx 面板）
-        if s.index in (2, 3):
-            specs = [
-                ("s_phi", "φ  机体倾角 (rad)", 1.0, None),
-                ("s_theta", "θ  虚拟腿摆角 (rad)", 1.0, None),
-                ("x", "x  位移 (m)", 1.0, "x_target" if s.index == 2 else None),
-                ("vx", "dx/dt  速度 (m/s)", 1.0, "v_target" if s.index == 3 else None),
-            ]
-            sp = plotting.plot_state_curves(s, runs, config.FIG_DIR, specs, suffix="states")
-            print(f"       → 状态图 {os.path.relpath(sp, config.REPO_ROOT)}")
+        # 每工况一张「状态量 + 控制力矩(Tp/T)」合并图，按工况分派子图布局
+        sp = plotting.plot_scenario_states(s, runs, config.FIG_DIR)
+        print(f"       → 状态+力矩图 {os.path.relpath(sp, config.REPO_ROOT)}")
 
     # 汇总（仅当三控制器全跑时才出汇总图/表）
     if set(controllers) == set(config.CONTROLLERS) and len(scenarios) == len(get_scenarios()):
