@@ -1,8 +1,8 @@
 """
-从 output/data/ 的已存 CSV 重绘工况响应对比图，不重跑 MuJoCo 仿真。
+从 output/data/ 的已存 CSV 重绘每工况 8 图组合，不重跑 MuJoCo 仿真。
 
 用途：仅当绘图代码（标题/样式）变更、而仿真数据未变时，用本脚本以原始 CSV
-快速重生成 output/figures/caseN_*.png，避免重跑耗时仿真。数据与 metrics.json 保持一致。
+快速重生成 output/figures/caseN_*_states.png，避免重跑耗时仿真。数据与 metrics.json 保持一致。
 
 依赖：experiments.config（路径与控制器清单）、experiments.scenarios（工况定义）、
       experiments.plotting（绘图）。
@@ -35,11 +35,9 @@ def main():
             if not os.path.exists(csv_path):
                 raise FileNotFoundError(f"缺少 CSV：{csv_path}")
             runs[ck] = _load_csv(csv_path)
-        fig_path = plotting.plot_scenario(s, runs, config.FIG_DIR)
-        print(f"[重绘] 工况{s.index} {s.title} → {os.path.relpath(fig_path, config.REPO_ROOT)}")
-        # 同步重绘「状态量 + 控制力矩(Tp/T)」合并图
-        sp = plotting.plot_scenario_states(s, runs, config.FIG_DIR)
-        print(f"        状态+力矩图 → {os.path.relpath(sp, config.REPO_ROOT)}")
+        # 每工况一张 8 图组合：6 状态反馈量 + 2 路控制输出(Tp/T)
+        sp = plotting.plot_states(s, runs, config.FIG_DIR)
+        print(f"[重绘] 工况{s.index} {s.title} → {os.path.relpath(sp, config.REPO_ROOT)}")
 
 
 if __name__ == "__main__":

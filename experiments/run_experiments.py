@@ -137,7 +137,7 @@ def _write_readme(scenarios):
         f.write("由 `python -m experiments.run_experiments` 在 MuJoCo（MJCF/env.xml）上实测生成。\n\n")
         f.write("## 目录\n\n")
         f.write("- `data/` 原始时序 CSV，命名 `caseN_<工况>_<控制器>.csv`，列见首行表头\n")
-        f.write("- `figures/` 每个工况一张 LQR / MPC 响应对比图 + 六维状态量图 + `summary_headline.png`\n")
+        f.write("- `figures/` 每个工况一张 8 图组合（6 状态反馈量 + Tp/T 两路控制输出）+ `summary_headline.png`\n")
         f.write("- `tables/` 汇总指标 `summary.{csv,md,tex}`（tex 可直接替换论文表 4 数据）\n")
         f.write("- `metrics.json` 全部指标的机器可读副本\n\n")
         f.write("## 工况清单\n\n")
@@ -195,11 +195,9 @@ def main(argv=None):
             mt = compute_metrics(data, s)
             metrics_table[ck][s.index] = mt
             metrics_json[f"case{s.index}_{ck}"] = mt
-        fig_path = plotting.plot_scenario(s, runs, config.FIG_DIR)
-        print(f"       → 图表 {os.path.relpath(fig_path, config.REPO_ROOT)}")
-        # 每工况一张「状态量 + 控制力矩(Tp/T)」合并图，按工况分派子图布局
-        sp = plotting.plot_scenario_states(s, runs, config.FIG_DIR)
-        print(f"       → 状态+力矩图 {os.path.relpath(sp, config.REPO_ROOT)}")
+        # 每工况一张 8 图组合：6 状态反馈量 + 2 路控制输出(Tp/T)
+        sp = plotting.plot_states(s, runs, config.FIG_DIR)
+        print(f"       → 8图组合 {os.path.relpath(sp, config.REPO_ROOT)}")
 
     # 汇总（仅当三控制器全跑时才出汇总图/表）
     if set(controllers) == set(config.CONTROLLERS) and len(scenarios) == len(get_scenarios()):
