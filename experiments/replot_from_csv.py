@@ -35,13 +35,9 @@ def main():
             if not os.path.exists(csv_path):
                 raise FileNotFoundError(f"缺少 CSV：{csv_path}")
             runs[ck] = _load_csv(csv_path)
-        # 每工况一张 8 图组合：6 状态反馈量 + 2 路控制输出(Tp/T)
+        # 每工况一张状态+输出组合图（工况 2/3 目标叠进变量面板，工况 4 为 10 图）
         sp = plotting.plot_states(s, runs, config.FIG_DIR)
         print(f"[重绘] 工况{s.index} {s.title} → {os.path.relpath(sp, config.REPO_ROOT)}")
-        # 跟踪类工况（2 位置 / 3 速度 / 4 腿长）同步重绘跟踪图
-        if s.index in (2, 3, 4):
-            tp = plotting.plot_tracking(s, runs, config.FIG_DIR)
-            print(f"        跟踪图 → {os.path.relpath(tp, config.REPO_ROOT)}")
 
 
 if __name__ == "__main__":

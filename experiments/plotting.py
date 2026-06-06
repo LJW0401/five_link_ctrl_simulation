@@ -106,32 +106,48 @@ def _torque_ax(ax, runs, key, ylabel, saturation=False,
 
 
 def plot_states(scenario, runs, out_dir):
-    """每工况统一输出的 8 图组合（4×2）：六维状态反馈量 x=(θ,θ̇,x,ẋ,φ,φ̇) +
-    两路控制输出（右髋部力矩 Tp、右驱动轮力矩 T），PID/LQR/MPC 同图对比。
+    """每工况输出的状态+输出组合图（PID/LQR/MPC 同图对比）：
+      前 6 格为六维状态反馈量 x=(θ,θ̇,x,ẋ,φ,φ̇)，末 2 格为右髋部力矩 Tp 与
+      右驱动轮力矩 T（T 含 ±4 N·m 饱和线）。一般工况 4×2=8 图。
 
-    六维状态均为「相对目标的偏差」（harness 中 s_x=x−x_target、s_dx=ẋ−v_target，
-    其余目标本为 0），故各状态面板的目标线统一为 0（虚线）；位置/速度跟踪工况的
-    跟踪表现即体现为对应偏差收敛到 0。瞬态扰动工况叠加扰动窗口阴影并裁剪显示区间。"""
+    跟踪类工况把绝对量与目标叠在对应变量面板里（不再单出跟踪图）：
+      工况 2 位置阶跃 → x 面板画绝对位移 x 与目标阶跃虚线；
+      工况 3 速度跟踪 → ẋ 面板画绝对速度 vx 与目标虚线。
+    其余状态面板目标恒为 0（harness 中 s_x=x−x_target、s_dx=ẋ−v_target），画 0 虚线。
+    工况 4 腿长动态 → 在六状态后追加「腿长 L0 跟踪 + 跟踪误差」两格，扩为 5×2=10 图。
+    瞬态扰动工况叠加扰动窗口阴影并裁剪显示区间。返回输出路径。"""
+    idx = scenario.index
+    # 六维状态面板规格：(信号键, 轴标签, 目标键)；目标键 None → 画 0 参考线，
+    # 否则画该目标时序虚线（位置/速度跟踪工况把绝对量与目标叠进对应变量面板）
     specs = [
-        ("s_theta", "θ  虚拟腿摆角 (rad)"),
-        ("s_dtheta", "dθ/dt  摆角速度 (rad/s)"),
-        ("s_x", "x  位移偏差 (m)"),
-        ("s_dx", "dx/dt  速度偏差 (m/s)"),
-        ("s_phi", "φ  机体倾角 (=pitch, rad)"),
-        ("s_dphi", "dφ/dt  倾角速度 (rad/s)"),
+        ("s_theta", "θ  虚拟腿摆角 (rad)", None),
+        ("s_dtheta", "dθ/dt  摆角速度 (rad/s)", None),
+        ("s_x", "x  位移偏差 (m)", None),
+        ("s_dx", "dx/dt  速度偏差 (m/s)", None),
+        ("s_phi", "φ  机体倾角 (=pitch, rad)", None),
+        ("s_dphi", "dφ/dt  倾角速度 (rad/s)", None),
     ]
-    # 瞬态扰动工况：标出推力施加时间段（t=step_time 起，持续 DISTURB_DUR），
-    # 并把 x 轴裁剪到扰动前后的显示窗口
+    if idx == 2:
+        specs[2] = ("x", "x  位移 (m)", "x_target")
+    elif idx == 3:
+        specs[3] = ("vx", "dx/dt  速度 (m/s)", "v_target")
+
+    # 瞬态扰动工况：标出推力施加时间段并把 x 轴裁剪到扰动前后的显示窗口
     from .scenarios import DISTURB_TIME, DISTURB_DUR, DISTURB_WINDOW
     disturb_span = None
     disturb_window = None
-    if scenario.index == 5:
+    if idx == 5:
         disturb_span = (DISTURB_TIME, DISTURB_TIME + DISTURB_DUR)
         disturb_window = DISTURB_WINDOW
-    # 4×2：前 6 格六维状态，末 2 格追加右髋部力矩 Tp 与右驱动轮力矩 T
-    fig, axes = plt.subplots(4, 2, figsize=(11, 11), sharex=True)
+
+    legtrack = (idx == 4)          # 腿长动态工况追加 L0 跟踪+误差两格 → 10 图
+    rows = 5 if legtrack else 4
+    fig, axes = plt.subplots(rows, 2, figsize=(11, 13.5 if legtrack else 11), sharex=True)
     axes = axes.ravel()
-    for ax, (key, ylabel) in zip(axes[:6], specs):
+    ref = next(iter(runs.values()))
+    rm = _m(ref)
+
+    for ax, (key, ylabel, tgt) in zip(axes[:6], specs):
         for ck in _present(runs):
             _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
                       lw=1.0, label=config.CONTROLLER_LABEL[ck])
@@ -140,68 +156,48 @@ def plot_states(scenario, runs, out_dir):
                        alpha=0.18, lw=0, label="扰动施加")
         if disturb_window is not None:
             ax.set_xlim(*disturb_window)
-        ax.axhline(0.0, color="0.6", ls="--", lw=0.8)  # 目标值均为 0
+        if tgt is not None:
+            ax.plot(ref["t"][rm], ref[tgt][rm], "k--", lw=0.9, label="目标")
+        else:
+            ax.axhline(0.0, color="0.6", ls="--", lw=0.8)  # 目标值为 0
         ax.set_ylabel(ylabel)
         ax.grid(True, alpha=0.3)
-    _torque_ax(axes[6], runs, "Tp_r", "Tp  右髋部力矩 (N·m)",
-               disturb_span=disturb_span, disturb_window=disturb_window)
-    _torque_ax(axes[7], runs, "T_right", "T  右驱动轮力矩 (N·m)", saturation=True,
-               disturb_span=disturb_span, disturb_window=disturb_window)
-    axes[0].legend(loc="best", fontsize=9, ncol=4)
-    axes[6].set_xlabel("时间 t (s)")
-    axes[7].set_xlabel("时间 t (s)")
-    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）六维状态反馈量与控制力矩"
-                 f"随时间变化（状态目标均为 0，虚线）", fontsize=13)
-    fig.tight_layout(rect=(0, 0, 1, 0.98))
-    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_states.png")
-    fig.savefig(path)
-    plt.close(fig)
-    return path
 
-
-def plot_tracking(scenario, runs, out_dir):
-    """跟踪类工况的「实际量 vs 目标」曲线（PID/LQR/MPC 同图，目标为黑色虚线）。
-    工况 2 位置 x、工况 3 速度 vx：单面板；工况 4 腿长 L0：腿长跟踪 + 跟踪误差双面板。
-    八图组合里 x/dx 是相对目标的偏差，无法看绝对跟踪轨迹，本图补足该视角。
-    仅工况 2/3/4 有独立跟踪目标，其余工况不调用。返回输出路径。"""
-    idx = scenario.index
-    ref = next(iter(runs.values()))
-    rm = _m(ref)
-
-    if idx == 4:
-        fig, axes = plt.subplots(2, 1, figsize=(8.2, 6.0), sharex=True)
-        ax_l0, ax_err = axes
+    # 工况 4：第 7、8 格画腿长 L0 跟踪与跟踪误差
+    if legtrack:
+        ax_l0 = axes[6]
         for ck in _present(runs):
             d = runs[ck]; m = _m(d)
             ax_l0.plot(d["t"][m], d["L0"][m], color=config.CONTROLLER_COLOR[ck],
-                       lw=1.3, label=config.CONTROLLER_LABEL[ck])
-            ax_err.plot(d["t"][m], (d["L0"] - d["L0_target"])[m],
-                        color=config.CONTROLLER_COLOR[ck], lw=1.1)
-        ax_l0.plot(ref["t"][rm], ref["L0_target"][rm], "k--", lw=1.1, label="目标 L0")
-        ax_err.axhline(0.0, color="0.6", ls="--", lw=0.8)
+                       lw=1.2, label=config.CONTROLLER_LABEL[ck])
+        ax_l0.plot(ref["t"][rm], ref["L0_target"][rm], "k--", lw=1.0, label="目标 L0")
         ax_l0.set_ylabel("腿长 L0 (m)")
-        ax_err.set_ylabel("L0 跟踪误差 (m)")
-        ax_err.set_xlabel("时间 t (s)")
-        for ax in axes:
-            ax.grid(True, alpha=0.3)
-        ax_l0.legend(loc="best", fontsize=9, ncol=3)
-        fig.suptitle(f"工况 {scenario.index}（{scenario.title}）腿长 L0 跟踪", fontsize=13)
-    else:
-        key, tgt, ylabel = (("x", "x_target", "位移 x (m)") if idx == 2
-                            else ("vx", "v_target", "速度 vx (m/s)"))
-        fig, ax = plt.subplots(figsize=(8.2, 4.0))
+        ax_l0.grid(True, alpha=0.3)
+        ax_err = axes[7]
         for ck in _present(runs):
-            _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
-                      lw=1.2, label=config.CONTROLLER_LABEL[ck])
-        ax.plot(ref["t"][rm], ref[tgt][rm], "k--", lw=0.9, label="目标")
-        ax.set_ylabel(ylabel)
-        ax.set_xlabel("时间 t (s)")
-        ax.grid(True, alpha=0.3)
-        ax.legend(loc="best", fontsize=9, ncol=3)
-        fig.suptitle(f"工况 {scenario.index}（{scenario.title}）{ylabel}跟踪", fontsize=13)
+            d = runs[ck]; m = _m(d)
+            ax_err.plot(d["t"][m], (d["L0"] - d["L0_target"])[m],
+                        color=config.CONTROLLER_COLOR[ck], lw=1.0)
+        ax_err.axhline(0.0, color="0.6", ls="--", lw=0.8)
+        ax_err.set_ylabel("L0 跟踪误差 (m)")
+        ax_err.grid(True, alpha=0.3)
+        tp_i, t_i = 8, 9
+    else:
+        tp_i, t_i = 6, 7
 
+    _torque_ax(axes[tp_i], runs, "Tp_r", "Tp  右髋部力矩 (N·m)",
+               disturb_span=disturb_span, disturb_window=disturb_window)
+    _torque_ax(axes[t_i], runs, "T_right", "T  右驱动轮力矩 (N·m)", saturation=True,
+               disturb_span=disturb_span, disturb_window=disturb_window)
+
+    axes[0].legend(loc="best", fontsize=9, ncol=4)
+    axes[tp_i].set_xlabel("时间 t (s)")
+    axes[t_i].set_xlabel("时间 t (s)")
+    title_extra = " + 腿长跟踪" if legtrack else ""
+    fig.suptitle(f"工况 {idx}（{scenario.title}）六维状态反馈量{title_extra}与控制力矩"
+                 f"随时间变化", fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
-    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_track.png")
+    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_states.png")
     fig.savefig(path)
     plt.close(fig)
     return path
