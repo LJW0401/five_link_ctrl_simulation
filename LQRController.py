@@ -163,6 +163,7 @@ class LQRBalanceController:
 
             if i == 0:
                 self.Tp_r = Tp
+                self.T = T   # 监控用：右腿 LQR 轮力矩输出
             else:
                 self.Tp_l = Tp
 
