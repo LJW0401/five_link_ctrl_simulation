@@ -197,6 +197,14 @@ def main(argv=None):
             metrics_json[f"case{s.index}_{ck}"] = mt
         fig_path = plotting.plot_scenario(s, runs, config.FIG_DIR)
         print(f"       → 图表 {os.path.relpath(fig_path, config.REPO_ROOT)}")
+        # 每个工况额外两张力矩对比图：3 种控制器输出的右髋部力矩 Tp 与右驱动轮力矩 T
+        tp_path = plotting.plot_torque_compare(
+            s, runs, config.FIG_DIR, "Tp_r", "右髋部力矩 Tp (N·m)", "Tp")
+        t_path = plotting.plot_torque_compare(
+            s, runs, config.FIG_DIR, "T_right", "右驱动轮力矩 T (N·m)", "T",
+            saturation=True)
+        print(f"       → 力矩图 {os.path.relpath(tp_path, config.REPO_ROOT)} / "
+              f"{os.path.relpath(t_path, config.REPO_ROOT)}")
         # 平衡保持 / 瞬态扰动工况额外绘制六维状态反馈量随时间变化
         # （扰动恢复目标也为 0，故复用同一张六状态图；
         #   工况 5 借此展示扰动后六维状态偏离与回归 0 的过程）

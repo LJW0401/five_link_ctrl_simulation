@@ -37,6 +37,12 @@ def main():
             runs[ck] = _load_csv(csv_path)
         fig_path = plotting.plot_scenario(s, runs, config.FIG_DIR)
         print(f"[重绘] 工况{s.index} {s.title} → {os.path.relpath(fig_path, config.REPO_ROOT)}")
+        # 同步重绘两张力矩对比图（右髋部力矩 Tp、右驱动轮力矩 T）
+        plotting.plot_torque_compare(
+            s, runs, config.FIG_DIR, "Tp_r", "右髋部力矩 Tp (N·m)", "Tp")
+        plotting.plot_torque_compare(
+            s, runs, config.FIG_DIR, "T_right", "右驱动轮力矩 T (N·m)", "T",
+            saturation=True)
 
 
 if __name__ == "__main__":

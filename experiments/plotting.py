@@ -295,6 +295,44 @@ def plot_states_legtrack(scenario, runs, out_dir):
     return path
 
 
+def plot_torque_compare(scenario, runs, out_dir, key, ylabel, suffix,
+                        saturation=False):
+    """
+    单信号力矩对比图：3 种控制器输出的同一路力矩随时间变化叠在一张图上。
+    key: "Tp_r"（右髋部力矩）或 "T_right"（右驱动轮力矩）。
+    saturation=True 时叠加 ±WHEEL_TORQUE_LIMIT 饱和线（仅轮力矩需要）。
+    噪声大的力矩信号沿用 _plot_sig 的零相位低通平滑（原始淡色叠底）。
+    """
+    fig, ax = plt.subplots(figsize=(8.2, 4.0))
+    for ck in _present(runs):
+        _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
+                  lw=1.2, label=config.CONTROLLER_LABEL[ck])
+
+    # 扰动工况：标出扰动窗口并裁剪显示区间，与其它图保持一致
+    if scenario._disturbance is not None and scenario.step_time is not None:
+        from .scenarios import DISTURB_DUR, DISTURB_WINDOW
+        ax.axvspan(scenario.step_time, scenario.step_time + DISTURB_DUR,
+                   color="0.85", alpha=0.6, zorder=0)
+        ax.set_xlim(*DISTURB_WINDOW)
+
+    if saturation:
+        ax.axhline(config.WHEEL_TORQUE_LIMIT, color="0.5", ls=":", lw=0.8)
+        ax.axhline(-config.WHEEL_TORQUE_LIMIT, color="0.5", ls=":", lw=0.8)
+
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel("时间 t (s)")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best", fontsize=9, ncol=3)
+    fig.suptitle(f"工况 {scenario.index}（{scenario.title}）{_title_controllers(runs)} "
+                 f"{ylabel}对比", fontsize=13)
+    fig.tight_layout(rect=(0, 0, 1, 0.98))
+
+    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_{suffix}.png")
+    fig.savefig(path)
+    plt.close(fig)
+    return path
+
+
 def plot_summary(scenarios, metrics_table, out_dir):
     """各工况头条指标的分组柱状图。metrics_table[ck][scenario.index] -> headline。"""
     labels = [f"{s.index}\n{s.title}" for s in scenarios]
