@@ -137,7 +137,8 @@ def _write_readme(scenarios):
         f.write("由 `python -m experiments.run_experiments` 在 MuJoCo（MJCF/env.xml）上实测生成。\n\n")
         f.write("## 目录\n\n")
         f.write("- `data/` 原始时序 CSV，命名 `caseN_<工况>_<控制器>.csv`，列见首行表头\n")
-        f.write("- `figures/` 每个工况一张 8 图组合（6 状态反馈量 + Tp/T 两路控制输出）+ `summary_headline.png`\n")
+        f.write("- `figures/` 每个工况一张 8 图组合（6 状态反馈量 + Tp/T 两路控制输出）；"
+                "工况 2/3/4 另附跟踪图 `caseN_*_track.png`（实际量 vs 目标）+ `summary_headline.png`\n")
         f.write("- `tables/` 汇总指标 `summary.{csv,md,tex}`（tex 可直接替换论文表 4 数据）\n")
         f.write("- `metrics.json` 全部指标的机器可读副本\n\n")
         f.write("## 工况清单\n\n")
@@ -198,6 +199,10 @@ def main(argv=None):
         # 每工况一张 8 图组合：6 状态反馈量 + 2 路控制输出(Tp/T)
         sp = plotting.plot_states(s, runs, config.FIG_DIR)
         print(f"       → 8图组合 {os.path.relpath(sp, config.REPO_ROOT)}")
+        # 跟踪类工况（2 位置 / 3 速度 / 4 腿长）补一张实际量 vs 目标跟踪图
+        if s.index in (2, 3, 4):
+            tp = plotting.plot_tracking(s, runs, config.FIG_DIR)
+            print(f"       → 跟踪图 {os.path.relpath(tp, config.REPO_ROOT)}")
 
     # 汇总（仅当三控制器全跑时才出汇总图/表）
     if set(controllers) == set(config.CONTROLLERS) and len(scenarios) == len(get_scenarios()):

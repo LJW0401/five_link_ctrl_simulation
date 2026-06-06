@@ -159,6 +159,54 @@ def plot_states(scenario, runs, out_dir):
     return path
 
 
+def plot_tracking(scenario, runs, out_dir):
+    """跟踪类工况的「实际量 vs 目标」曲线（PID/LQR/MPC 同图，目标为黑色虚线）。
+    工况 2 位置 x、工况 3 速度 vx：单面板；工况 4 腿长 L0：腿长跟踪 + 跟踪误差双面板。
+    八图组合里 x/dx 是相对目标的偏差，无法看绝对跟踪轨迹，本图补足该视角。
+    仅工况 2/3/4 有独立跟踪目标，其余工况不调用。返回输出路径。"""
+    idx = scenario.index
+    ref = next(iter(runs.values()))
+    rm = _m(ref)
+
+    if idx == 4:
+        fig, axes = plt.subplots(2, 1, figsize=(8.2, 6.0), sharex=True)
+        ax_l0, ax_err = axes
+        for ck in _present(runs):
+            d = runs[ck]; m = _m(d)
+            ax_l0.plot(d["t"][m], d["L0"][m], color=config.CONTROLLER_COLOR[ck],
+                       lw=1.3, label=config.CONTROLLER_LABEL[ck])
+            ax_err.plot(d["t"][m], (d["L0"] - d["L0_target"])[m],
+                        color=config.CONTROLLER_COLOR[ck], lw=1.1)
+        ax_l0.plot(ref["t"][rm], ref["L0_target"][rm], "k--", lw=1.1, label="目标 L0")
+        ax_err.axhline(0.0, color="0.6", ls="--", lw=0.8)
+        ax_l0.set_ylabel("腿长 L0 (m)")
+        ax_err.set_ylabel("L0 跟踪误差 (m)")
+        ax_err.set_xlabel("时间 t (s)")
+        for ax in axes:
+            ax.grid(True, alpha=0.3)
+        ax_l0.legend(loc="best", fontsize=9, ncol=3)
+        fig.suptitle(f"工况 {scenario.index}（{scenario.title}）腿长 L0 跟踪", fontsize=13)
+    else:
+        key, tgt, ylabel = (("x", "x_target", "位移 x (m)") if idx == 2
+                            else ("vx", "v_target", "速度 vx (m/s)"))
+        fig, ax = plt.subplots(figsize=(8.2, 4.0))
+        for ck in _present(runs):
+            _plot_sig(ax, runs[ck], key, config.CONTROLLER_COLOR[ck],
+                      lw=1.2, label=config.CONTROLLER_LABEL[ck])
+        ax.plot(ref["t"][rm], ref[tgt][rm], "k--", lw=0.9, label="目标")
+        ax.set_ylabel(ylabel)
+        ax.set_xlabel("时间 t (s)")
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="best", fontsize=9, ncol=3)
+        fig.suptitle(f"工况 {scenario.index}（{scenario.title}）{ylabel}跟踪", fontsize=13)
+
+    fig.tight_layout(rect=(0, 0, 1, 0.98))
+    path = os.path.join(out_dir, f"case{scenario.index}_{scenario.key}_track.png")
+    fig.savefig(path)
+    plt.close(fig)
+    return path
+
+
 def plot_summary(scenarios, metrics_table, out_dir):
     """各工况头条指标的分组柱状图。metrics_table[ck][scenario.index] -> headline。"""
     labels = [f"{s.index}\n{s.title}" for s in scenarios]
