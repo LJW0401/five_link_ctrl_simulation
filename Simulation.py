@@ -3,14 +3,27 @@ import mujoco.viewer
 import numpy as np
 import time
 import math
+import argparse
 from environment import *
 from keyboard import *
 from BalanceController import create_controller, CTRL_LQR, CTRL_PID, CTRL_MPC
 from StateEstimator import StateEstimator, IMUData, MotorData
 from CommandServer import CommandServer, apply_to_controller
+from MonitorServer import MonitorServer
+
+
+def parse_args():
+    ap = argparse.ArgumentParser(description="五连杆机器人仿真")
+    ap.add_argument("--monitor", action="store_true",
+                    help="开启监控记录后端服务（网页界面 + CSV 导出）")
+    ap.add_argument("--monitor-host", default="127.0.0.1", help="监控服务监听地址")
+    ap.add_argument("--monitor-port", type=int, default=8000, help="监控服务端口")
+    return ap.parse_args()
 
 
 def main():
+
+    args = parse_args()
 
     GBC486 = LegWheelRobot('MJCF/env.xml')
     i = 0
@@ -30,6 +43,12 @@ def main():
     # 启动 UDP 指令服务器
     cmd_server = CommandServer(host="127.0.0.1", port=9000)
     cmd_server.start()
+
+    # 按命令行开关启动监控记录后端服务
+    monitor = None
+    if args.monitor:
+        monitor = MonitorServer(host=args.monitor_host, port=args.monitor_port)
+        monitor.start()
 
     while True:
         i = i + 1
@@ -69,6 +88,21 @@ def main():
             GBC486.joint_torque = joint_torque
             GBC486.wheel_torque = wheel_torque
             GBC486.actuator_set_torque()
+
+            # 推送监控样本（右腿六变量反馈 + T/Tp 输出）
+            if monitor is not None:
+                monitor.push({
+                    "t": GBC486.data.time,
+                    "theta": state.leg[0].Theta,
+                    "d_theta": state.leg[0].dTheta,
+                    "x": state.body.x,
+                    "d_x": state.body.x_dot,
+                    "phi": state.body.phi,
+                    "d_phi": state.body.phi_dot,
+                    "T": getattr(ctrl, "T", 0.0),
+                    "Tp_r": getattr(ctrl, "Tp_r", 0.0),
+                    "Tp_l": getattr(ctrl, "Tp_l", 0.0),
+                })
 
         if i % t3 == 0:
             cmd = keyboard.get_command()

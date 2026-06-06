@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<!--
+  监控记录前端界面（由 MonitorServer 在 "/" 提供）。
+  职责：轮询 /data 拉取实时样本，用 canvas 绘制各通道曲线；
+        按钮 POST /start、/stop 控制记录，链接 /export.csv 导出。
+  纯 vanilla JS + canvas，无外部 CDN / 字体 / 脚本依赖。
+-->
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>五连杆机器人监控记录</title>
+<style>
+  :root { --fg:#1a1a1a; --grid:#e2e2e2; --line:#2563eb; --bg:#ffffff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,Segoe UI,Roboto,'Noto Sans CJK SC',sans-serif;
+         color:var(--fg); background:#f6f7f9; }
+  header { padding:14px 20px; background:#fff; border-bottom:1px solid #e2e2e2;
+           display:flex; align-items:center; gap:16px; flex-wrap:wrap; position:sticky; top:0; z-index:5; }
+  h1 { font-size:18px; margin:0; }
+  button, a.btn { font-size:14px; padding:8px 16px; border-radius:6px; border:1px solid #cbd5e1;
+                  background:#fff; cursor:pointer; color:var(--fg); text-decoration:none; }
+  button:hover, a.btn:hover { background:#f1f5f9; }
+  #start { border-color:#16a34a; color:#16a34a; }
+  #start.active { background:#16a34a; color:#fff; }
+  #stop { border-color:#dc2626; color:#dc2626; }
+  .status { font-size:13px; color:#555; margin-left:auto; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#bbb;
+         margin-right:5px; vertical-align:middle; }
+  .dot.rec { background:#dc2626; animation:blink 1s step-start infinite; }
+  @keyframes blink { 50% { opacity:.3; } }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:12px; padding:16px; }
+  .card { background:#fff; border:1px solid #e2e2e2; border-radius:8px; padding:8px 10px; }
+  .card .head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+  .card .name { font-weight:600; font-size:14px; }
+  .card .val { font-variant-numeric:tabular-nums; font-size:13px; color:#2563eb; }
+  canvas { width:100%; height:110px; display:block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>五连杆机器人监控记录</h1>
+  <button id="start">● 开始记录</button>
+  <button id="stop">■ 停止记录</button>
+  <a class="btn" id="export" href="/export.csv">⬇ 导出 CSV</a>
+  <span class="status"><span class="dot" id="dot"></span><span id="statusText">未连接</span></span>
+</header>
+<div class="grid" id="grid"></div>
+
+<script>
+// 与后端 CHANNELS 顺序一致；t 仅作横轴，不单独画卡片
+const PLOT_CHANNELS = ["theta","d_theta","x","d_x","phi","d_phi","T","Tp_r","Tp_l"];
+const LABELS = {
+  theta:"theta 右腿摆杆角 (rad)", d_theta:"d_theta 摆杆角速度 (rad/s)",
+  x:"x 机体位移 (m)", d_x:"d_x 机体速度 (m/s)",
+  phi:"phi 机体倾角 (rad)", d_phi:"d_phi 机体角速度 (rad/s)",
+  T:"T 驱动轮力矩 (Nm)", Tp_r:"Tp_r 右髋力矩 (Nm)", Tp_l:"Tp_l 左髋力矩 (Nm)",
+};
+
+const cards = {};
+const grid = document.getElementById("grid");
+for (const ch of PLOT_CHANNELS) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML =
+    `<div class="head"><span class="name">${LABELS[ch]}</span><span class="val" id="val-${ch}">—</span></div>`
+    + `<canvas id="cv-${ch}"></canvas>`;
+  grid.appendChild(card);
+  const cv = card.querySelector("canvas");
+  cards[ch] = { canvas: cv, ctx: cv.getContext("2d"), val: card.querySelector(`#val-${ch}`) };
+}
+
+function drawCurve(card, times, values) {
+  const cv = card.canvas, ctx = card.ctx;
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== w * dpr || cv.height !== h * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  // 网格 + 零线
+  ctx.strokeStyle = "#e2e2e2"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, h - 0.5); ctx.lineTo(w, h - 0.5); ctx.stroke();
+
+  if (values.length < 2) return;
+  let vmin = Math.min(...values), vmax = Math.max(...values);
+  if (vmax - vmin < 1e-9) { vmax += 1; vmin -= 1; }
+  const pad = (vmax - vmin) * 0.1; vmin -= pad; vmax += pad;
+  const tmin = times[0], tmax = times[times.length - 1];
+  const span = (tmax - tmin) || 1;
+  const X = t => (t - tmin) / span * w;
+  const Y = v => h - (v - vmin) / (vmax - vmin) * h;
+
+  // 零线
+  if (vmin < 0 && vmax > 0) {
+    ctx.strokeStyle = "#cbd5e1"; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(w, Y(0)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // 曲线
+  ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  for (let i = 0; i < values.length; i++) {
+    const px = X(times[i]), py = Y(values[i]);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+}
+
+async function tick() {
+  let data;
+  try {
+    const r = await fetch("/data", { cache: "no-store" });
+    data = await r.json();
+  } catch (e) {
+    setStatus(false, false, "未连接");
+    return;
+  }
+  const idx = {}; data.channels.forEach((c, i) => idx[c] = i);
+  const samples = data.samples;
+  const times = samples.map(s => s[idx.t]);
+  for (const ch of PLOT_CHANNELS) {
+    const vals = samples.map(s => s[idx[ch]]);
+    drawCurve(cards[ch], times, vals);
+    cards[ch].val.textContent = vals.length ? vals[vals.length - 1].toFixed(3) : "—";
+  }
+  setStatus(true, data.recording, data.recording ? "记录中" : "已连接");
+}
+
+function setStatus(connected, recording, text) {
+  document.getElementById("statusText").textContent = text;
+  const dot = document.getElementById("dot");
+  dot.className = "dot" + (recording ? " rec" : "");
+  if (!connected) dot.style.background = "#bbb";
+  document.getElementById("start").classList.toggle("active", !!recording);
+}
+
+document.getElementById("start").addEventListener("click", () => fetch("/start", { method: "POST" }).then(tick));
+document.getElementById("stop").addEventListener("click", () => fetch("/stop", { method: "POST" }).then(tick));
+
+setInterval(tick, 100);
+tick();
+</script>
+</body>
+</html>
